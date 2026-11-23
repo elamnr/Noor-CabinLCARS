@@ -2218,8 +2218,21 @@ function SAlerts({ E }) {
     </section>
   );
 }
+/* The status page is laid out on a fixed design canvas and scaled to fit the available area, so panels keep their
+   proportions and never overlap on shorter or narrower windows (HA header, browser chrome, laptop screens). */
+const S_W = 1740, S_H = 930;
+function useFit() {
+  const ref = useRef(null); const z = useSignal(1);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const m = () => { const cs = getComputedStyle(el); const w = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); const h = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom); z.value = Math.max(0.3, Math.min(w / S_W, h / S_H, 1.6)); };
+    m(); const ro = new ResizeObserver(m); ro.observe(el); return () => ro.disconnect();
+  }, []);
+  return [ref, z.value];
+}
 function StatusFrame() {
   const R = useRoom(); const S = R.status;
+  const [fitRef, zoom] = useFit();
   const E = useStatusEval(S);
   const g = (k) => S.groups.find((x) => x.key === k);
   const lamps = ['WATER', 'SEPTIC', 'THERMAL', 'SAFETY', 'ACCESS', 'NETWORK'];
@@ -2247,8 +2260,8 @@ function StatusFrame() {
         <span class="side-fill" />
         {link.value.mode !== 'hass' && <button class="nav" style={{ '--nav': 'var(--bl-amber)' }} onClick={() => (linkOpen.value = true)}><span class="nav-c">07-00</span><span class="nav-l">LINK</span></button>}
       </nav>
-      <main class="main">
-        <div class="page k-page s-page">
+      <main class="main s-main" ref={fitRef}>
+        <div class="page k-page s-page" style={{ width: `${S_W}px`, height: `${S_H}px`, zoom }}>
           <div class="k-colw">
             <section class="panel"><SecHead title="CHRONOMETER" tone="peach" /><KClock compact /></section>
             <section class="panel"><SecHead title="ATMOSPHERICS" tone="violet" /><SWeather /></section>

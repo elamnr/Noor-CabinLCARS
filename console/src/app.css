@@ -1034,3 +1034,6 @@ h1, h2 { margin: 0; font-weight: 500; }
   --bl-amber: #1F7A6A; --bl-tan: #9FD6C2; --bl-lilac: #0E3B34; --bl-peach: #4FC1A0; --bl-violet: #36A58A;
   --bl-sky: #6FF0C8; --bl-rust: #183D36; --bl-on-lilac: #9FE8D0; --bl-on-rust: #9FE8D0; --bl-hull: #0C1E1B;
 }
+/* status page: fixed design canvas scaled by zoom (see useFit); main never scrolls */
+.s-main { overflow: hidden; align-items: flex-start; justify-content: flex-start; }
+.s-main > .s-page { flex: none; min-width: 0; }
