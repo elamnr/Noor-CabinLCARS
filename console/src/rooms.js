@@ -449,16 +449,6 @@ STATUS.detail = {
       batt('WINDOW SENSOR BATTERY', 'sensor.bunkhouse_couch_window_sensor_battery_level'),
       flag('WINDOW SENSOR TAMPER', 'binary_sensor.bunkhouse_couch_window_sensor_tampering_product_cover_removed', 'COVER REMOVED', 'OK', 'warn'),
     ] },
-    { t: 'PERIMETER • LAST DETECTION', tone: 'violet', cols: 4, tiles: [
-      seen('ENTRY • PERSON', 'binary_sensor.log_cabin_entry_person'),
-      seen('ENTRY • VEHICLE', 'binary_sensor.log_cabin_entry_vehicle'),
-      seen('ENTRY • ANIMAL', 'binary_sensor.log_cabin_entry_animal'),
-      seen('ENTRY • MOTION', 'binary_sensor.log_cabin_entry_motion'),
-      seen('DOORBELL • VISITOR', 'binary_sensor.log_cabin_front_doorbell_visitor'),
-      seen('DOORBELL • PERSON', 'binary_sensor.log_cabin_front_doorbell_person'),
-      seen('DOORBELL • PACKAGE', 'binary_sensor.log_cabin_front_doorbell_package'),
-      seen('DOORBELL • VEHICLE', 'binary_sensor.log_cabin_front_doorbell_vehicle'),
-    ] },
   ],
   NETWORK: [
     { t: 'CONNECTIVITY', tone: 'ice', cols: 3, tiles: [
@@ -501,6 +491,15 @@ STATUS.cameras = [
 STATUS.webcams = [
   ['TOFTE WAVECAM • BLUEFIN BAY', 'https://video.nest.com/embedded/live/tDBlRMs7nK?autoplay=1', 'https://www.bluefinbay.com/wavecam'],
 ];
+// ACCESS page layout: entry hardware for the Bunk House (the tiles in STATUS.detail.ACCESS still drive alerts)
+STATUS.access = {
+  lock: { l: 'BUNK HOUSE LOCK', id: 'lock.bunk_house_yale_assure_lock_bunkhouse', battery: 'sensor.bunk_house_yale_assure_lock_bunkhouse_battery_level',
+    chips: [['JAMMED', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_lock_jammed', { on: 'JAMMED', off: 'NO' }, 'bad'], ['KEYPAD', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_keypad_temporary_disabled', { on: 'DISABLED', off: 'ACTIVE' }, 'warn'], ['REPLACE BATTERY', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_replace_battery_now', { on: 'NOW', off: 'NO' }, 'bad'], ['Z-WAVE NODE', 'sensor.bunk_house_yale_assure_lock_bunkhouse_node_status', { alive: 'ALIVE', asleep: 'ASLEEP', dead: 'DEAD' }, 'dead']] },
+  openings: [
+    { l: 'BUNK HOUSE FRONT DOOR', id: 'binary_sensor.bunk_house_front_door_sensor', battery: 'sensor.bunk_house_front_door_battery_level', tamper: 'binary_sensor.bunk_house_front_door_tampering_product_cover_removed' },
+    { l: 'BUNK COUCH WINDOW', id: 'binary_sensor.bunkhouse_couch_window_sensor_intrusion', battery: 'sensor.bunkhouse_couch_window_sensor_battery_level', tamper: 'binary_sensor.bunkhouse_couch_window_sensor_tampering_product_cover_removed' },
+  ],
+};
 export function statusIds(S) {
   return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...(S.humidityAll ?? []).map((x) => x[1]), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
 }

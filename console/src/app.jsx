@@ -2361,8 +2361,97 @@ function SThermoCharts({ p }) {
 const sPage = signal((() => { try { return localStorage.getItem('cabinlcars.status.page') || 'STATUS'; } catch { return 'STATUS'; } })());
 function goStatus(p) { if (p !== 'CAMERAS' || sPage.peek() === 'CAMERAS') camView.value = null; sPage.value = p; try { localStorage.setItem('cabinlcars.status.page', p); } catch {} }
 const LAMP_TONE = { WATER: 'sky', SEPTIC: 'peach', THERMAL: 'tan', SAFETY: 'red', ACCESS: 'violet', NETWORK: 'ice' };
+
+/* ACCESS page: big-state entry cards on the left, a camera x detection matrix and recent-activity list on the right */
+const tsOf = (st) => (typeof st?.last_changed === 'number' ? st.last_changed * 1000 : Date.parse(st?.last_changed));
+const since = (st) => { const t = tsOf(st); return Number.isNaN(t) ? '--' : `SINCE ${hm(new Date(t))} • ${ago(t / 1000)}`; };
+function Batt({ id }) {
+  const st = ent(id).value; const v = num(st);
+  const tone = v == null ? 'na' : v < 15 ? 'alert' : v < 30 ? 'warn' : 'ok';
+  return (
+    <span class="s-chip s-batt" data-tone={tone} data-link="" onClick={() => openEntity(id)}>BATTERY
+      <i class="s-bar"><i style={{ width: `${v ?? 0}%` }} /></i><b>{v == null ? '--' : `${Math.round(v)}%`}</b>
+    </span>
+  );
+}
+function Chip({ l, id, map, bad }) {
+  const st = ent(id).value; const s0 = st?.state;
+  const tone = !st || UNAVAIL.has(s0) ? 'na' : (bad === 'dead' ? s0 === 'dead' : s0 === 'on') ? (bad === 'warn' ? 'warn' : 'alert') : 'ok';
+  return <span class="s-chip" data-tone={tone} data-link="" onClick={() => openEntity(id)}>{l}<b>{!st ? '--' : UNAVAIL.has(s0) ? 'NO SIGNAL' : map[s0] ?? UP(s0)}</b></span>;
+}
+function SAccess() {
+  const S = useRoom().status; const A = S.access;
+  const lk = ent(A.lock.id).value; const ls = lk?.state;
+  const lTone = !lk || UNAVAIL.has(ls) ? 'na' : ls === 'jammed' ? 'alert' : ls === 'unlocked' ? 'warn' : 'ok';
+  // perimeter matrix
+  const types = ['PERSON', 'VISITOR', 'VEHICLE', 'ANIMAL', 'PACKAGE', 'MOTION'];
+  const shortCam = (l) => l.replace('LOG CABIN ', '').replace('BUNK HOUSE ', 'BUNK ').replace('FRONT ', '');
+  const recent = S.cameras.flatMap(([cl, , , det]) => det.map(([l, id]) => ({ cam: shortCam(cl), l, id, st: ent(id).value })))
+    .filter((x) => x.st && !UNAVAIL.has(x.st.state) && !Number.isNaN(tsOf(x.st)))
+    .sort((a, b) => (b.st.state === 'on') - (a.st.state === 'on') || tsOf(b.st) - tsOf(a.st)).slice(0, 8);
+  return (
+    <div class="s-acc">
+      <div class="s-acc-l">
+        <section class="panel">
+          <SecHead title="BUNK HOUSE ENTRY" tone="violet" />
+          <div class="s-big" data-tone={lTone} data-link="" onClick={() => openEntity(A.lock.id)}>
+            <span class="s-big-l">{A.lock.l}</span>
+            <b class="s-big-v">{!lk ? 'NOT FOUND' : UNAVAIL.has(ls) ? 'NO SIGNAL' : UP(ls)}</b>
+            <span class="s-big-s">{lk ? since(lk) : ''}</span>
+          </div>
+          <div class="s-chips"><Batt id={A.lock.battery} />{A.lock.chips.map(([l, id, map, bad]) => <Chip l={l} id={id} map={map} bad={bad} />)}</div>
+        </section>
+        <div class="s-acc-op">
+          {A.openings.map((o) => {
+            const st = ent(o.id).value; const open = st?.state === 'on';
+            const tone = !st || UNAVAIL.has(st.state) ? 'na' : open ? 'warn' : 'ok';
+            return (
+              <section class="panel">
+                <div class="s-big s-big-sm" data-tone={tone} data-link="" onClick={() => openEntity(o.id)}>
+                  <span class="s-big-l">{o.l}</span>
+                  <b class="s-big-v">{!st ? 'NOT FOUND' : UNAVAIL.has(st.state) ? 'NO SIGNAL' : open ? 'OPEN' : 'CLOSED'}</b>
+                  <span class="s-big-s">{st ? since(st) : ''}</span>
+                </div>
+                <div class="s-chips"><Batt id={o.battery} /><Chip l="TAMPER" id={o.tamper} map={{ on: 'COVER OFF', off: 'OK' }} bad="warn" /></div>
+              </section>
+            );
+          })}
+        </div>
+      </div>
+      <div class="s-acc-r">
+        <section class="panel">
+          <SecHead title="PERIMETER • DETECTIONS" tone="violet" />
+          <div class="s-mx" style={{ '--c': types.length }}>
+            <span class="s-mx-h" />{types.map((t) => <span class="s-mx-h">{t}</span>)}
+            {S.cameras.map(([cl, , , det]) => [
+              <span class="s-mx-r">{shortCam(cl)}</span>,
+              ...types.map((t) => {
+                const d = det.find(([l]) => l === t); if (!d) return <span class="s-mx-c" data-none="">—</span>;
+                const st = ent(d[1]).value; if (!st || UNAVAIL.has(st.state)) return <span class="s-mx-c" data-tone="na" data-link="" onClick={() => openEntity(d[1])}>--</span>;
+                const on = st.state === 'on'; const age = (clock.value - tsOf(st)) / 60000;
+                return <span class="s-mx-c" data-link="" onClick={() => openEntity(d[1])} data-tone={on ? (t === 'MOTION' ? 'warn' : 'alert') : age < 15 ? 'fresh' : 'old'}>{on ? 'NOW' : ago(tsOf(st) / 1000).replace(' AGO', '')}</span>;
+              }),
+            ])}
+          </div>
+          <div class="s-mx-key"><i data-tone="alert" />DETECTING NOW<i data-tone="warn" />MOTION NOW<i data-tone="fresh" />LAST 15 MIN<i data-tone="old" />OLDER</div>
+        </section>
+        <section class="panel s-feedlist">
+          <SecHead title="LATEST ACTIVITY" tone="violet" />
+          {recent.map((x) => (
+            <div class="s-act" data-on={x.st.state === 'on' ? '' : undefined} data-link="" onClick={() => openEntity(x.id)}>
+              <b>{x.st.state === 'on' ? 'NOW' : hm(new Date(tsOf(x.st)))}</b><span>{x.cam}</span><span class="s-act-t">{x.l}</span><i>{x.st.state === 'on' ? 'ACTIVE' : ago(tsOf(x.st) / 1000)}</i>
+            </div>
+          ))}
+          <div class="s-act-note">TIMES ARE THE LAST CHANGE OF EACH SENSOR; A HOME ASSISTANT RESTART RESETS THEM</div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 function SDetail({ k }) {
   const S = useRoom().status; const P = S.detail?.[k] ?? [];
+  if (k === 'ACCESS' && S.access) return <SAccess />;
   return (
     <div class="s-detail">
       {P.map((p) => p.meters ? <div class="s-dwide s-ttop"><SThermal /><SHumidityAll /></div> : p.thermo ? <div class="s-dwide"><SThermoCharts p={p} /></div> : (
@@ -2570,7 +2659,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v11';
+export const BUILD = 'v12';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
