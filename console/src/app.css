@@ -1026,3 +1026,11 @@ h1, h2 { margin: 0; font-weight: 500; }
 .s-app .nav.s-lamp[data-sel] { box-shadow: none; }
 .s-page .k-colw > .s-therm, .s-page .k-colw > .s-hum { flex: 1; }
 .s-therm .s-tm, .s-hum .s-tm { flex: 1; }
+
+/* ===================== CABIN PALETTE: SEA PINE (Cabin repo override, not yet in Bridgeline) =====================
+   Remaps the default frame slots only. Caution (sunflower), titles (orchid) and alerts (red/rose) are unchanged
+   so their meaning matches Retro House. Meter colour scales in wx.jsx are not themed. */
+:root {
+  --bl-amber: #1F7A6A; --bl-tan: #9FD6C2; --bl-lilac: #0E3B34; --bl-peach: #4FC1A0; --bl-violet: #36A58A;
+  --bl-sky: #6FF0C8; --bl-rust: #183D36; --bl-on-lilac: #9FE8D0; --bl-on-rust: #9FE8D0; --bl-hull: #0C1E1B;
+}
