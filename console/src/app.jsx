@@ -1366,8 +1366,8 @@ function ClimatePanel() {
 }
 
 /* ---------- security ---------- */
-function useCameraSrc() {
-  const cam = ent(SHARED.camera).value;
+function useCameraSrc(id = SHARED.camera) {
+  const cam = ent(id).value;
   const pic = cam?.attributes?.entity_picture;
   return pic && hassUrl() ? `${hassUrl()}${pic.replace('/api/camera_proxy/', '/api/camera_proxy_stream/')}` : null;
 }
@@ -2278,13 +2278,34 @@ function SDetail({ k }) {
     </div>
   );
 }
+function SCam({ c: [label, id, wide, det] }) {
+  const src = useCameraSrc(id); const cam = ent(id).value;
+  const active = det.filter(([, d]) => ent(d).value?.state === 'on');
+  const hot = active.some(([l]) => l !== 'MOTION');
+  return (
+    <section class="panel s-cam" data-wide={wide ? '' : undefined} data-hot={hot ? '' : undefined}>
+      <SecHead title={label} tone={hot ? 'red' : active.length ? 'sunflower' : 'violet'} />
+      {src ? <img class="s-feed" src={src} alt={`${label} camera`} />
+        : <div class="s-feed alert-nocam"><span>NO FEED</span><small>{link.value.mode === 'sim' ? 'SIMULATION • CAMERA REQUIRES LIVE LINK' : `${UP(cam?.state ?? 'CAMERA NOT FOUND')}`}</small></div>}
+      <div class="s-det">
+        {det.map(([l, d]) => { const st = ent(d).value; const on = st?.state === 'on'; return <span data-on={on ? '' : undefined} data-kind={l === 'MOTION' ? 'motion' : 'ai'} data-na={!st || UNAVAIL.has(st.state) ? '' : undefined}>{l}<i>{!st || UNAVAIL.has(st.state) ? '--' : on ? 'NOW' : ago(st.last_changed)}</i></span>; })}
+      </div>
+    </section>
+  );
+}
+function SCameras() {
+  const S = useRoom().status;
+  return <div class="s-cams">{S.cameras.map((c) => <SCam c={c} />)}</div>;
+}
 function StatusFrame() {
   const R = useRoom(); const S = R.status;
   const [fitRef, zoom] = useFit();
   const E = useStatusEval(S);
   const g = (k) => S.groups.find((x) => x.key === k);
   const lamps = ['WATER', 'SEPTIC', 'THERMAL', 'SAFETY', 'ACCESS', 'NETWORK'];
-  const pg = lamps.includes(sPage.value) ? sPage.value : 'STATUS';
+  const pg = lamps.includes(sPage.value) || sPage.value === 'CAMERAS' ? sPage.value : 'STATUS';
+  const camNa = S.cameras.filter(([, c]) => { const st = ent(c).value; return !st || UNAVAIL.has(st.state); }).length;
+  const camDet = S.cameras.some(([, , , d]) => d.some(([l, x]) => l !== 'MOTION' && ent(x).value?.state === 'on'));
   const sub = E.items.filter((x) => x.g === pg);
   const head = E.alerts ? `${E.alerts} ALERT${E.alerts > 1 ? 'S' : ''}` : E.warns ? `${E.warns} CAUTION` : 'NOMINAL';
   return (
@@ -2310,11 +2331,16 @@ function StatusFrame() {
             </button>
           );
         })}
+        <button class="nav s-home" data-cur={pg === 'CAMERAS' ? '' : undefined} data-alert={camDet ? '' : undefined} style={{ '--nav': `var(--bl-${camDet ? 'red' : camNa ? 'rust' : 'violet'})` }} onClick={() => goStatus('CAMERAS')}>
+          <span class="nav-c">{camDet ? 'DETECTION' : camNa ? `${camNa} OFFLINE` : `${S.cameras.length} FEEDS`}</span><span class="nav-l">CAMERAS</span>
+        </button>
         <span class="side-fill" />
         {link.value.mode !== 'hass' && <button class="nav" style={{ '--nav': 'var(--bl-amber)' }} onClick={() => (linkOpen.value = true)}><span class="nav-c">07-00</span><span class="nav-l">LINK</span></button>}
       </nav>
       <main class="main s-main" ref={fitRef}>
-        {pg !== 'STATUS' ? (
+        {pg === 'CAMERAS' ? (
+          <div class="page s-dpage" style={{ width: `${S_W}px`, height: `${S_H}px`, zoom }}><SCameras /></div>
+        ) : pg !== 'STATUS' ? (
           <div class="page s-dpage" style={{ width: `${S_W}px`, height: `${S_H}px`, zoom }}>
             <section class="panel s-dalerts">
               <SecHead title={sub.length ? `${pg} • ${sub.length} ${sub.length > 1 ? 'ITEMS NEED' : 'ITEM NEEDS'} ATTENTION` : `${pg} • ALL NOMINAL`} tone={sub.some((x) => x.tone === 'alert') ? 'red' : sub.length ? 'sunflower' : LAMP_TONE[pg]} />
@@ -2361,7 +2387,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v3';
+export const BUILD = 'v4';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

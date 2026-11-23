@@ -545,3 +545,9 @@ Object.assign(SEED, {
   "sensor.bunk_house_outdoor_outlet_bunkhouse_node_status": C("alive"),
   "sensor.zooz_outdoor_outlets_node_status": C("alive"),
 });
+// Camera page snapshot (2026-11-23 13:25 CST). Feeds need a live link; simulation shows NO FEED.
+Object.assign(SEED, {
+  'camera.log_cabin_entry_fluent': C('idle'), 'camera.log_cabin_front_doorbell_fluent': C('idle'), 'camera.bunk_house_pano_fluent': C('idle'),
+  'binary_sensor.log_cabin_front_doorbell_motion': C('off'),
+  'binary_sensor.bunk_house_pano_person': C('on'), 'binary_sensor.bunk_house_pano_vehicle': C('off'), 'binary_sensor.bunk_house_pano_animal': C('off'), 'binary_sensor.bunk_house_pano_motion': C('on'),
+});

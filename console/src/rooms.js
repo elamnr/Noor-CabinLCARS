@@ -486,8 +486,14 @@ STATUS.detail = {
     ] },
   ],
 };
+// CAMERAS page: [label, camera, wide (spans the full row), detection sensors [label, binary_sensor]]
+STATUS.cameras = [
+  ['LOG CABIN ENTRY', 'camera.log_cabin_entry_fluent', false, [['PERSON', 'binary_sensor.log_cabin_entry_person'], ['VEHICLE', 'binary_sensor.log_cabin_entry_vehicle'], ['ANIMAL', 'binary_sensor.log_cabin_entry_animal'], ['MOTION', 'binary_sensor.log_cabin_entry_motion']]],
+  ['LOG CABIN FRONT DOORBELL', 'camera.log_cabin_front_doorbell_fluent', false, [['VISITOR', 'binary_sensor.log_cabin_front_doorbell_visitor'], ['PERSON', 'binary_sensor.log_cabin_front_doorbell_person'], ['PACKAGE', 'binary_sensor.log_cabin_front_doorbell_package'], ['VEHICLE', 'binary_sensor.log_cabin_front_doorbell_vehicle'], ['MOTION', 'binary_sensor.log_cabin_front_doorbell_motion']]],
+  ['BUNK HOUSE PANO', 'camera.bunk_house_pano_fluent', true, [['PERSON', 'binary_sensor.bunk_house_pano_person'], ['VEHICLE', 'binary_sensor.bunk_house_pano_vehicle'], ['ANIMAL', 'binary_sensor.bunk_house_pano_animal'], ['MOTION', 'binary_sensor.bunk_house_pano_motion']]],
+];
 export function statusIds(S) {
-  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
+  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
 }
 ROOMS.status = {
   key: 'status', title: 'TINY CABINS', kiosk: 'status',
