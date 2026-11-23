@@ -255,6 +255,6 @@ export async function boot(ids, seed, simulate) {
   } else {
     backend = simulate(seed);
     ready.value = true;
-    link.value = { mode: 'sim', detail: 'SNAPSHOT 2026-10-29' };
+    link.value = { mode: 'sim', detail: typeof __ROOM__ !== 'undefined' && __ROOM__ === 'status' ? 'CABIN SNAPSHOT 2026-11-22' : 'SNAPSHOT 2026-10-29' };
   }
 }

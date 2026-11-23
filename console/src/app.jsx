@@ -2065,11 +2065,231 @@ function KitchenFrame() {
   );
 }
 
+/* ===================== CABIN MASTER SYSTEMS STATUS (landscape desktop, display only) ===================== */
+const num = (st) => (st && !UNAVAIL.has(st.state) && !Number.isNaN(+st.state) ? +st.state : null);
+/** Tone for one status tile: ok | warn | alert | na */
+function tileTone(t, st) {
+  if (!st) return 'na';
+  if (UNAVAIL.has(st.state)) return 'na';
+  if (t.bad?.includes(st.state)) return 'alert';
+  if (t.warn?.includes(st.state)) return 'warn';
+  return 'ok';
+}
+/** Reading for a thermal meter: climate entities use current_temperature, sensors their state. */
+function tempOf(id) {
+  const st = ent(id).value;
+  if (!st || UNAVAIL.has(st.state)) return null;
+  return id.startsWith('climate.') ? st.attributes?.current_temperature ?? null : num(st);
+}
+function meterTone(v, o) { return v == null ? 'na' : (o.lo != null && v < o.lo) || (o.hi != null && v > o.hi) ? 'alert' : 'ok'; }
+/** Every alert and warning on the panel, for the header count, the side lamps and the ALERTS list. */
+function useStatusEval(S) {
+  const items = [];
+  const groups = {};
+  for (const g of S.groups) {
+    let worst = 'ok';
+    for (const t of g.tiles) {
+      const st = ent(t.id).value; const tone = tileTone(t, st);
+      if (tone === 'alert' || tone === 'warn' || tone === 'na') items.push({ g: g.key, l: t.l, tone, v: !st ? 'NOT FOUND' : UNAVAIL.has(st.state) ? 'NO SIGNAL' : (t.map?.[st.state] ?? UP(st.state)) });
+      worst = rank(tone) > rank(worst) ? tone : worst;
+    }
+    groups[g.key] = worst;
+  }
+  let th = 'ok';
+  for (const [l, id, o] of S.thermal) {
+    const v = tempOf(id); const tone = meterTone(v, o);
+    if (tone !== 'ok') items.push({ g: 'THERMAL', l: `TEMP • ${l}`, tone, v: v == null ? 'NO SIGNAL' : `${Math.round(v)}°F` });
+    th = rank(tone) > rank(th) ? tone : th;
+  }
+  for (const [l, id, o] of S.humidity) {
+    const v = num(ent(id).value); const tone = v == null ? 'na' : v > o.hi ? 'warn' : 'ok';
+    if (tone !== 'ok') items.push({ g: 'THERMAL', l: `HUMIDITY • ${l}`, tone, v: v == null ? 'NO SIGNAL' : `${Math.round(v)}%` });
+    th = rank(tone) > rank(th) ? tone : th;
+  }
+  groups.THERMAL = th;
+  items.sort((a, b) => rank(b.tone) - rank(a.tone));
+  return { items, groups, alerts: items.filter((x) => x.tone === 'alert').length, warns: items.filter((x) => x.tone !== 'alert').length };
+}
+function rank(t) { return { ok: 0, na: 1, warn: 2, alert: 3 }[t] ?? 0; }
+
+function STile({ t }) {
+  const st = ent(t.id).value; const tone = tileTone(t, st);
+  const v = !st ? 'NOT FOUND' : UNAVAIL.has(st.state) ? 'NO SIGNAL' : t.raw ? st.state : (t.map?.[st.state] ?? UP(st.state));
+  return <div class="s-tile" data-tone={tone}><span>{t.l}</span><b>{v}</b></div>;
+}
+function SGroup({ g, cols = 2 }) {
+  return (
+    <section class="panel">
+      <SecHead title={g.key} tone={g.tone} />
+      <div class="s-tiles" style={{ '--cols': cols }}>{g.tiles.map((t) => <STile t={t} />)}</div>
+    </section>
+  );
+}
+function SThermal() {
+  const S = useRoom().status;
+  return (
+    <section class="panel s-therm">
+      <SecHead title="THERMAL • FREEZE WATCH" tone="tan" />
+      <div class="tm-row s-tm" style={{ gridTemplateColumns: `repeat(${S.thermal.length}, minmax(0, 1fr))` }}>
+        {S.thermal.map(([l, id, o]) => {
+          const v = tempOf(id); const st = ent(id).value; const a = st?.attributes ?? {};
+          const tone = meterTone(v, o);
+          const sub = id.startsWith('climate.') ? (st && !UNAVAIL.has(st.state) ? `SET ${a.temperature ?? '--'}° • ${UP(a.hvac_action ?? st.state)}` : 'NO SIGNAL') : (tone === 'alert' ? `BELOW ${o.lo}°` : o.sub);
+          return <Meter label={l} unit="°" value={v} min={20} max={90} fn={tempColor} alert={tone === 'alert'} sub={sub} />;
+        })}
+      </div>
+    </section>
+  );
+}
+function SHumidity() {
+  const S = useRoom().status;
+  const co2 = num(ent(S.co2).value);
+  return (
+    <section class="panel s-hum">
+      <SecHead title="HUMIDITY • AIR" tone="violet" />
+      <div class="tm-row s-tm" style={{ gridTemplateColumns: `repeat(${S.humidity.length + 1}, minmax(0, 1fr))` }}>
+        {S.humidity.map(([l, id, o]) => { const v = num(ent(id).value); return <Meter label={l} unit="%" value={v} min={0} max={100} fn={humColor} alert={v != null && v > o.hi} sub={v != null && v > o.hi ? `ABOVE ${o.hi}%` : 'RH'} />; })}
+        <Meter label="CO2" unit="" value={co2} min={400} max={2000} alert={co2 != null && co2 > 1500} sub={co2 == null ? '' : co2 > 1500 ? 'HIGH' : co2 > 1000 ? 'ELEVATED • PPM' : 'PPM'} />
+      </div>
+    </section>
+  );
+}
+function SOccupancy() {
+  const S = useRoom().status;
+  const fmt = (s) => { if (!s) return '--'; const d = new Date(s.replace(' ', 'T')); return isNaN(d) ? s : `${DAYS[d.getDay()].slice(0, 3)} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  return (
+    <section class="panel">
+      <SecHead title="OCCUPANCY" tone="sunflower" />
+      {S.units.map(([l, cal, hrs, pres]) => {
+        const c = ent(cal).value; const h = num(ent(hrs).value); const p = ent(pres).value;
+        const booked = c?.state === 'on';
+        return (
+          <div class="s-unit" data-booked={booked ? '' : undefined}>
+            <div class="s-unit-h"><b>{l}</b><span>{!c ? 'NOT FOUND' : UNAVAIL.has(c.state) ? 'NO SIGNAL' : booked ? 'RESERVED' : 'VACANT'}</span></div>
+            <div class="s-unit-r">
+              <span>{booked ? 'UNTIL' : 'NEXT'}<b>{booked ? fmt(c.attributes?.end_time) : fmt(c?.attributes?.start_time)}</b></span>
+              <span>LAST ACTIVITY<b>{h == null ? '--' : h < 1 ? 'UNDER 1 H' : `${h.toFixed(1)} H AGO`}</b></span>
+              <span>PRESENCE<b>{!p || UNAVAIL.has(p.state) ? '--' : p.state === 'on' ? 'DETECTED' : 'NONE'}</b></span>
+            </div>
+            {booked && c.attributes?.message && <div class="s-unit-m">{c.attributes.message}</div>}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+function SPower() {
+  const S = useRoom().status;
+  const now = num(ent(S.solar.now).value); const today = num(ent(S.solar.today).value);
+  return (
+    <section class="panel">
+      <SecHead title="SOLAR" tone="sunflower" />
+      <div class="s-tiles" style={{ '--cols': 2 }}>
+        <div class="s-tile" data-tone={now == null ? 'na' : 'ok'}><span>OUTPUT NOW</span><b>{now == null ? 'NO SIGNAL' : now >= 1000 ? `${(now / 1000).toFixed(2)} KW` : `${Math.round(now)} W`}</b></div>
+        <div class="s-tile" data-tone={today == null ? 'na' : 'ok'}><span>TODAY</span><b>{today == null ? 'NO SIGNAL' : `${(today / 1000).toFixed(1)} KWH`}</b></div>
+      </div>
+    </section>
+  );
+}
+function SWeather() {
+  const R = useRoom(); const W = R.weather;
+  const w = ent(W.entity).value; const a = w?.attributes ?? {};
+  const fc = useForecast(W.entity, 'daily'); const t = fc.items[0];
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return (
+    <div class="k-wx k-wx-c">
+      <WxBig W={W} a={a} cond={w?.state} small />
+      <div class="wx-grid wx-compact">
+        <Stat k="HIGH / LOW" v={t ? `${Math.round(t.temperature)}° / ${Math.round(t.templow ?? t.temperature)}°` : '--'} />
+        <Stat k="WIND" v={a.wind_speed != null ? `${Math.round(a.wind_speed)} ${a.wind_bearing != null ? dirs[Math.round(a.wind_bearing / 45) % 8] : ''}` : '--'} />
+        <Stat k="HUMIDITY" v={`${a.humidity ?? '--'}%`} color={humColor(a.humidity)} />
+      </div>
+    </div>
+  );
+}
+function SAlerts({ E }) {
+  return (
+    <section class="panel s-alerts">
+      <SecHead title={E.items.length ? `ALERTS • ${E.items.length}` : 'ALERTS'} tone={E.alerts ? 'red' : E.warns ? 'sunflower' : 'tan'} />
+      {!E.items.length && <div class="s-clear">ALL SYSTEMS NOMINAL</div>}
+      <div class="s-alist">
+        {E.items.map((x) => <div class="s-al" data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}
+      </div>
+    </section>
+  );
+}
+function StatusFrame() {
+  const R = useRoom(); const S = R.status;
+  const E = useStatusEval(S);
+  const g = (k) => S.groups.find((x) => x.key === k);
+  const lamps = ['WATER', 'SEPTIC', 'THERMAL', 'SAFETY', 'ACCESS', 'NETWORK'];
+  const head = E.alerts ? `${E.alerts} ALERT${E.alerts > 1 ? 'S' : ''}` : E.warns ? `${E.warns} CAUTION` : 'NOMINAL';
+  return (
+    <div class="app k-app s-app">
+      <div class="elbow-t"><span class="elbow-code">{code(`tiny-cabins-${R.key}`, 6)}</span></div>
+      <header class="hd">
+        <span class="corner-t"><i /></span>
+        <span class="hd-bar" />
+        <span class="hd-seg" style={{ background: E.alerts ? 'var(--bl-red)' : E.warns ? 'var(--bl-sunflower)' : 'var(--bl-tan)', width: '72px' }} />
+        <span class="hd-seg hd-code">{head} • {BUILD}</span>
+        <h1 class="hd-t">{R.title} • MASTER SYSTEMS</h1>
+        <span class="hd-cap" />
+      </header>
+      <nav class="side" aria-label="System health">
+        {lamps.map((k) => {
+          const tone = E.groups[k] ?? 'na';
+          return (
+            <div class="nav k-mode s-lamp" data-sel="" data-alert={tone === 'alert' ? '' : undefined} style={{ '--nav': `var(--bl-${{ ok: 'tan', warn: 'sunflower', alert: 'red', na: 'rust' }[tone]})` }}>
+              <span class="nav-c">{{ ok: 'NOMINAL', warn: 'CAUTION', alert: 'ALERT', na: 'NO SIGNAL' }[tone]}</span><span class="nav-l">{k}</span>
+            </div>
+          );
+        })}
+        <span class="side-fill" />
+        {link.value.mode !== 'hass' && <button class="nav" style={{ '--nav': 'var(--bl-amber)' }} onClick={() => (linkOpen.value = true)}><span class="nav-c">07-00</span><span class="nav-l">LINK</span></button>}
+      </nav>
+      <main class="main">
+        <div class="page k-page s-page">
+          <div class="k-colw">
+            <section class="panel"><SecHead title="CHRONOMETER" tone="peach" /><KClock compact /></section>
+            <section class="panel"><SecHead title="ATMOSPHERICS" tone="violet" /><SWeather /></section>
+            <SOccupancy />
+            <SPower />
+          </div>
+          <div class="k-colw">
+            <SThermal />
+            <SHumidity />
+            <SGroup g={g('WATER')} cols={4} />
+            <SGroup g={g('SEPTIC')} cols={2} />
+          </div>
+          <div class="k-colw">
+            <SAlerts E={E} />
+            <SGroup g={g('SAFETY')} cols={3} />
+            <SGroup g={g('ACCESS')} cols={2} />
+            <SGroup g={g('NETWORK')} cols={3} />
+          </div>
+        </div>
+      </main>
+      <div class="elbow-b" />
+      <footer class="ft">
+        <span class="corner-b"><i /></span>
+        <span class="ft-bar" />
+        <Fault />
+        <span class="status k-foot">DISPLAY ONLY • REMOTE MONITORING</span>
+        <StatusPill />
+        <span class="ft-seg" />
+        <span class="ft-cap" />
+      </footer>
+      <LinkPanel />
+      <ReloadWatch />
+    </div>
+  );
+}
+
 export const BUILD = 'v42';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
-  return <RoomCtx.Provider value={R}>{R.kiosk ? <KitchenFrame /> : <Frame />}</RoomCtx.Provider>;
+  return <RoomCtx.Provider value={R}>{R.kiosk === 'status' ? <StatusFrame /> : R.kiosk ? <KitchenFrame /> : <Frame />}</RoomCtx.Provider>;
 }
 
 export { App, ALL_IDS };

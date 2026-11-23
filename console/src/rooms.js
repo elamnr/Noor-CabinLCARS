@@ -269,6 +269,76 @@ ROOMS.kitchen = {
   pages: ['KITCHEN'],
 };
 
+// ===================== CABIN: MASTER SYSTEMS STATUS (display only, landscape desktop) =====================
+// Tile spec: { l: label, id, map: {state: text}, bad: [states shown red], warn: [states shown gold] }.
+// Anything unavailable/unknown shows rust (NO SIGNAL). Meter spec: [label, entity, unit, min, max, kind, opts].
+const OPEN = { on: 'OPEN', off: 'CLOSED' }, DET = { on: 'DETECTED', off: 'CLEAR' }, LINK = { on: 'ONLINE', off: 'OFFLINE' };
+export const STATUS = {
+  groups: [
+    { key: 'WATER', tone: 'sky', tiles: [
+      { l: 'MAIN SHUTOFF VALVE', id: 'switch.log_cabin_emergency_water_shutoff', map: { on: 'OPEN', off: 'CLOSED' }, bad: ['off'] }, // ASSUMPTION: switch on = valve open
+      { l: 'LEAK • LOG BATH', id: 'binary_sensor.water_leak_sensor_log_cabin_bathroom_water_leak_detected', map: DET, bad: ['on'] },
+      { l: 'LEAK • LOG KITCHEN', id: 'binary_sensor.water_leak_sensor_log_cabin_kitchen_water_leak_detected', map: DET, bad: ['on'] },
+      { l: 'LEAK • AT VALVE', id: 'binary_sensor.log_cabin_emergency_water_shutoff_water_leak_detected', map: DET, bad: ['on'] },
+      { l: 'VALVE JAMMED', id: 'binary_sensor.log_cabin_emergency_water_shutoff_valve_jammed', map: { on: 'JAMMED', off: 'NO' }, bad: ['on'] },
+      { l: 'VALVE BACKUP BATTERY', id: 'binary_sensor.log_cabin_emergency_water_shutoff_back_up_battery_disconnected', map: { on: 'DISCONNECTED', off: 'CONNECTED' }, warn: ['on'] },
+      { l: 'WATER MAIN HEAT TAPE', id: 'switch.outdoor_plug_1', map: { on: 'ON', off: 'OFF' }, warn: ['off'] },
+      { l: 'WATER MAIN MOISTURE', id: 'binary_sensor.water_main_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
+    ] },
+    { key: 'SEPTIC', tone: 'peach', tiles: [
+      { l: 'SEPTIC MONITOR', id: 'sensor.septic_monitor_node_status', map: { alive: 'ONLINE', dead: 'OFFLINE', asleep: 'ASLEEP' }, bad: ['dead'] },
+      { l: 'PUMP RUNS TODAY', id: 'counter.septic_daily_run_counter', raw: true },
+    ] },
+    { key: 'SAFETY', tone: 'red', tiles: [
+      { l: 'SMOKE • LOG CABIN', id: 'binary_sensor.log_cabin_smoke_co_sensor_smoke_detected', map: DET, bad: ['on'] },
+      { l: 'CO • LOG CABIN', id: 'binary_sensor.log_cabin_smoke_co_sensor_carbon_monoxide_detected', map: DET, bad: ['on'] },
+      { l: 'CRAWLSPACE MOISTURE', id: 'binary_sensor.crawlspace_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
+    ] },
+    { key: 'ACCESS', tone: 'violet', tiles: [
+      { l: 'BUNK HOUSE LOCK', id: 'lock.bunk_house_yale_assure_lock_bunkhouse', map: { locked: 'LOCKED', unlocked: 'UNLOCKED', jammed: 'JAMMED' }, warn: ['unlocked'], bad: ['jammed'] },
+      { l: 'BUNK HOUSE DOOR', id: 'binary_sensor.bunk_house_front_door_sensor', map: OPEN, warn: ['on'] },
+      { l: 'BUNK COUCH WINDOW', id: 'binary_sensor.bunkhouse_couch_window_sensor_intrusion', map: OPEN, warn: ['on'] }, // ASSUMPTION: intrusion on = open
+      { l: 'LOCK BATTERY', id: 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_replace_battery_soon', map: { on: 'REPLACE SOON', off: 'OK' }, warn: ['on'] },
+    ] },
+    { key: 'NETWORK', tone: 'ice', tiles: [
+      { l: 'INTERNET (WAN)', id: 'binary_sensor.broadcom_adsl_router_wan_status', map: LINK, bad: ['off'] },
+      { l: 'REMOTE ACCESS', id: 'binary_sensor.remote_ui', map: LINK, bad: ['off'] },
+      { l: 'ZIGBEE COORDINATOR', id: 'binary_sensor.slzb_mrw10_internet', map: LINK, bad: ['off'] },
+    ] },
+  ],
+  // THERMAL meters: freeze-critical spaces first. lo = alert below, hi = alert above.
+  thermal: [
+    ['WATER MAIN', 'sensor.water_main_temp_sensor_air_temperature', { lo: 35, sub: 'OOD HOUSE' }],
+    ['CRAWLSPACE', 'sensor.crawlspace_temp_sensor_air_temperature', { lo: 40, sub: 'LOG CABIN' }],
+    ['LOG MAIN', 'climate.log_cabin_main_thermostat', { lo: 50, hi: 85 }],
+    ['LOG FIREPLACE', 'climate.log_cabin_fireplace_thermostat', { lo: 50, hi: 85 }],
+    ['BUNK MAIN', 'climate.bunk_main_thermostat', { lo: 50, hi: 85 }],
+    ['BUNK BATH', 'climate.bunk_bath_thermostat_thermostat', { lo: 50, hi: 85 }],
+  ],
+  humidity: [
+    ['WATER MAIN', 'sensor.water_main_temp_sensor_humidity', { hi: 85 }],
+    ['CRAWLSPACE', 'sensor.crawlspace_temp_sensor_humidity', { hi: 80 }],
+    ['LOG CABIN', 'sensor.shelly_humidity_and_temp_sensor_log_cabin_humidity', { hi: 70 }],
+    ['BUNK MAIN', 'sensor.bunk_main_thermostat_humidity', { hi: 70 }],
+  ],
+  co2: 'sensor.apollo_air_1_7bc400_co2',
+  solar: { now: 'sensor.envoy_122117017195_current_power_production', today: 'sensor.envoy_122117017195_today_s_energy_production' },
+  // OCCUPANCY per structure: rental calendar (on = an event is active now), activity clock, presence sensor
+  units: [
+    ['LOG CABIN', 'calendar.log_cabin_rental_calendar', 'sensor.hours_since_log_cabin_activity', 'binary_sensor.log_cabin_presence_sensor_log_cabin_presence_sensor_1'],
+    ['BUNK HOUSE', 'calendar.bunk_house_calendar', 'sensor.hours_since_bunk_house_activity', 'binary_sensor.bunk_presence_sensor_presence_sensor_1'],
+  ],
+};
+export function statusIds(S) {
+  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
+}
+ROOMS.status = {
+  key: 'status', title: 'TINY CABINS', kiosk: 'status',
+  lights: null, lightMembers: [], lightScenes: [], media: [], commands: [],
+  weather: { entity: 'weather.forecast_tiny_cabins', sun: 'sun.sun', hvacOutdoor: null },
+  status: STATUS, pages: ['STATUS'],
+};
+
 export function roomIds(R) {
   return [
     R.lights, ...(R.lightMembers ?? []), ...R.lightScenes.map(([, id]) => id),
@@ -280,6 +350,7 @@ export function roomIds(R) {
     R.calendar?.focus, ...(R.calendar?.cals.map((c) => c[1]) ?? []),
     ...(R.vehicles ?? []).flatMap(vehicleIds),
     ...Object.values(R.modes ?? {}), R.aiTimeline,
+    ...(R.status ? statusIds(R.status) : []),
     R.telemetry?.hvac, R.telemetry?.freezer, ...(R.telemetry?.cars ?? []).map(([, id]) => id),
   ].filter(Boolean);
 }

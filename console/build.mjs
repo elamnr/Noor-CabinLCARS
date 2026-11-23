@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 const css = ['colors', 'typography', 'spacing', 'app'].map(f => readFileSync(`src/${f}.css`, 'utf8')).join('\n');
 mkdirSync('dist', { recursive: true });
-for (const [room, file, title] of [['bedroom', 'bedroom-console.html', 'Primary Bed Console'], ['office', 'office-console.html', 'Office Console'], ['entry', 'entry-console.html', 'Entry Console'], ['house', 'house-console.html', 'Retro House Console'], ['kitchen', 'kitchen-console.html', 'Kitchen Display']]) {
+for (const [room, file, title] of [['bedroom', 'bedroom-console.html', 'Primary Bed Console'], ['office', 'office-console.html', 'Office Console'], ['entry', 'entry-console.html', 'Entry Console'], ['house', 'house-console.html', 'Retro House Console'], ['kitchen', 'kitchen-console.html', 'Kitchen Display'], ['status', 'status-console.html', 'Tiny Cabins Master Systems']]) {
 const r = await build({ entryPoints: ['src/main.jsx'], bundle: true, minify: true, format: 'iife', write: false, jsx: 'automatic', jsxImportSource: 'preact', target: 'es2020', legalComments: 'none', loader: { '.webp': 'dataurl' }, define: { __ROOM__: JSON.stringify(room) } });
 const js = r.outputFiles[0].text.replace(/<\/script/g, '<\\/script');
 const html = `<!doctype html>
