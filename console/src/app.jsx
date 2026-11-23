@@ -2400,6 +2400,10 @@ function StatusFrame() {
   const g = (k) => S.groups.find((x) => x.key === k);
   const lamps = ['WATER', 'SEPTIC', 'THERMAL', 'SAFETY', 'ACCESS', 'NETWORK'];
   const pg = lamps.includes(sPage.value) || sPage.value === 'CAMERAS' ? sPage.value : 'STATUS';
+  // most recent person detection on any camera: NOW while one is active, else time since the latest one changed
+  const persons = S.cameras.flatMap(([, , , d]) => d.filter(([l]) => l === 'PERSON').map(([, x]) => ent(x).value)).filter((x) => x && !UNAVAIL.has(x.state));
+  const personSeen = !persons.length ? 'PERSON --' : persons.some((x) => x.state === 'on') ? 'PERSON NOW'
+    : `PERSON ${ago(Math.max(...persons.map((x) => (typeof x.last_changed === 'number' ? x.last_changed * 1000 : Date.parse(x.last_changed)))) / 1000)}`;
   const camNa = S.cameras.filter(([, c]) => { const st = ent(c).value; return !st || UNAVAIL.has(st.state); }).length;
   const sub = E.items.filter((x) => x.g === pg);
   const head = E.alerts ? `${E.alerts} ALERT${E.alerts > 1 ? 'S' : ''}` : E.warns ? `${E.warns} CAUTION` : 'NOMINAL';
@@ -2427,7 +2431,7 @@ function StatusFrame() {
           );
         })}
         <button class="nav s-home" data-cur={pg === 'CAMERAS' ? '' : undefined} data-alert={camNa ? '' : undefined} style={{ '--nav': `var(--bl-${camNa ? 'red' : 'violet'})` }} onClick={() => goStatus('CAMERAS')}>
-          <span class="nav-c">{camNa ? `${camNa} OFFLINE` : `${S.cameras.length} FEEDS`}</span><span class="nav-l">CAMERAS</span>
+          <span class="nav-c">{camNa ? `${camNa} OFFLINE` : personSeen}</span><span class="nav-l">CAMERAS</span>
         </button>
         <span class="side-fill" />
         {link.value.mode !== 'hass' && <button class="nav" style={{ '--nav': 'var(--bl-amber)' }} onClick={() => (linkOpen.value = true)}><span class="nav-c">07-00</span><span class="nav-l">LINK</span></button>}
@@ -2482,7 +2486,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v8';
+export const BUILD = 'v9';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
