@@ -513,6 +513,21 @@ STATUS.access = {
     { l: 'BUNK COUCH WINDOW', id: 'binary_sensor.bunkhouse_couch_window_sensor_intrusion', battery: 'sensor.bunkhouse_couch_window_sensor_battery_level', tamper: 'binary_sensor.bunkhouse_couch_window_sensor_tampering_product_cover_removed' },
   ],
 };
+// NETWORK page layout: connectivity cards + Z-Wave nodes grouped by building (detail tiles still drive alerts)
+STATUS.network = {
+  links: [
+    { l: 'INTERNET • WAN', id: 'binary_sensor.broadcom_adsl_router_wan_status' },
+    { l: 'REMOTE ACCESS • NABU CASA', id: 'binary_sensor.remote_ui' },
+    { l: 'ZIGBEE COORDINATOR', id: 'binary_sensor.slzb_mrw10_internet', sub: [['ETHERNET', 'binary_sensor.slzb_mrw10_ethernet']] },
+    { l: 'APOLLO AIR SENSOR', id: 'binary_sensor.apollo_air_1_7bc400_online' },
+  ],
+  ipad: { l: 'CABIN CONTROL IPAD', battery: 'sensor.cabin_control_ipad_battery_level' },
+  zwave: [
+    ['LOG CABIN', [['WATER SHUTOFF', 'sensor.log_cabin_emergency_water_shutoff_node_status', 'mains'], ['LOG CABIN LOCK', 'sensor.yale_assure_lock_log_cabin_node_status', 'lock'], ['SMOKE / CO', 'sensor.log_cabin_smoke_co_sensor_node_status', 'battery'], ['FIREPLACE STAT', 'sensor.log_cabin_fireplace_thermostat_node_status', 'battery'], ['CRAWLSPACE SENSOR', 'sensor.crawlspace_temp_sensor_node_status', 'battery'], ['LEAK • BATH', 'sensor.water_leak_sensor_log_cabin_bathroom_node_status', 'battery'], ['LEAK • KITCHEN', 'sensor.water_leak_sensor_log_cabin_kitchen_node_status', 'battery'], ['SCENE CONTROLLER', 'sensor.log_cabin_scene_controler_node_status', 'mains'], ['OUTDOOR OUTLET', 'sensor.log_cabin_outdoor_outlet_log_cabin_node_status', 'mains']]],
+    ['BUNK HOUSE', [['BUNK LOCK', 'sensor.bunk_house_yale_assure_lock_bunkhouse_node_status', 'lock'], ['DOOR SENSOR', 'sensor.bunk_house_front_door_node_status', 'battery'], ['COUCH WINDOW', 'sensor.bunkhouse_couch_window_sensor_node_status', 'battery'], ['SCENE CONTROLLER', 'sensor.bunk_house_scene_controller_node_status', 'mains'], ['OUTDOOR OUTLET', 'sensor.bunk_house_outdoor_outlet_bunkhouse_node_status', 'mains']]],
+    ['SITE / UTILITY', [['SEPTIC MONITOR', 'sensor.septic_monitor_node_status', 'mains'], ['WATER MAIN SENSOR', 'sensor.water_main_temp_sensor_node_status', 'battery'], ['HEAT TAPE OUTLET', 'sensor.outdoor_plug_1_node_status', 'mains'], ['ZOOZ OUTLET 2', 'sensor.zooz_outdoor_outlets_node_status', 'mains']]],
+  ],
+};
 export function statusIds(S) {
   return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...(S.humidityAll ?? []).map((x) => x[1]), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
 }

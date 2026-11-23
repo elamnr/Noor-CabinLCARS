@@ -2455,9 +2455,78 @@ function SAccess() {
   );
 }
 
+
+/* NETWORK page: big connectivity states on the left, Z-Wave nodes grouped by building on the right */
+function SNetwork() {
+  const S = useRoom().status; const N = S.network;
+  const all = N.zwave.flatMap(([, ns]) => ns);
+  const cnt = (st) => all.filter(([, id]) => ent(id).value?.state === st).length;
+  const na = all.filter(([, id]) => { const x = ent(id).value; return !x || UNAVAIL.has(x.state); }).length;
+  const ip = num(ent(N.ipad.battery).value);
+  const kind = { mains: 'MAINS POWER • ALWAYS AWAKE', battery: 'BATTERY • SLEEPS BETWEEN REPORTS', lock: 'LOCK • WAKES ON DEMAND' };
+  return (
+    <div class="s-acc s-net">
+      <div class="s-acc-l">
+        <section class="panel">
+          <SecHead title="CONNECTIVITY" tone="ice" />
+          <div class="s-net-links">
+            {N.links.map((L) => {
+              const st = ent(L.id).value; const on = st?.state === 'on';
+              const tone = !st || UNAVAIL.has(st.state) ? 'na' : on ? 'ok' : 'alert';
+              return (
+                <div class="s-big s-big-sm" data-tone={tone} data-link="" onClick={() => openEntity(L.id)}>
+                  <span class="s-big-l">{L.l}</span>
+                  <b class="s-big-v">{!st ? 'NOT FOUND' : UNAVAIL.has(st.state) ? 'NO SIGNAL' : on ? 'ONLINE' : 'OFFLINE'}</b>
+                  <span class="s-big-s">{st ? since(st) : ''}{(L.sub ?? []).map(([sl, sid]) => { const x = ent(sid).value; return ` • ${sl} ${x?.state === 'on' ? 'UP' : x ? 'DOWN' : '--'}`; }).join('')}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+        <section class="panel">
+          <SecHead title={N.ipad.l} tone="ice" />
+          <div class="s-chips"><Batt id={N.ipad.battery} /></div>
+          {ip != null && ip < 30 && <div class="s-act-note">THE WALL IPAD IS LOSING CHARGE • CHECK ITS POWER CABLE</div>}
+        </section>
+      </div>
+      <div class="s-acc-r">
+        <section class="panel">
+          <SecHead title="Z-WAVE MESH" tone="ice" />
+          <div class="s-net-sum">
+            <span data-tone="ok"><b>{all.length}</b>NODES</span>
+            <span data-tone="ok"><b>{cnt('alive')}</b>ALIVE</span>
+            <span data-tone="ok"><b>{cnt('asleep')}</b>ASLEEP</span>
+            <span data-tone={cnt('dead') ? 'alert' : 'ok'}><b>{cnt('dead')}</b>DEAD</span>
+            <span data-tone={na ? 'na' : 'ok'}><b>{na}</b>NO SIGNAL</span>
+          </div>
+        </section>
+        {N.zwave.map(([grp, ns]) => (
+          <section class="panel">
+            <SecHead title={grp} tone="ice" />
+            <div class="s-nodes">
+              {[...ns].sort((a, b) => rank(nodeTone(ent(b[1]).value)) - rank(nodeTone(ent(a[1]).value))).map(([l, id, k]) => {
+                const st = ent(id).value; const tone = nodeTone(st);
+                return (
+                  <div class="s-node" data-tone={tone} data-link="" onClick={() => openEntity(id)}>
+                    <span class="s-node-n">{l}<small>{kind[k]}</small></span>
+                    <b>{!st ? 'NOT FOUND' : UNAVAIL.has(st.state) ? 'NO SIGNAL' : UP(st.state)}</b>
+                    <i>{st && !UNAVAIL.has(st.state) ? since(st).replace('SINCE ', '') : ''}</i>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+function nodeTone(st) { return !st || UNAVAIL.has(st.state) ? 'na' : st.state === 'dead' ? 'alert' : 'ok'; }
+
 function SDetail({ k }) {
   const S = useRoom().status; const P = S.detail?.[k] ?? [];
   if (k === 'ACCESS' && S.access) return <SAccess />;
+  if (k === 'NETWORK' && S.network) return <SNetwork />;
   return (
     <div class="s-detail">
       {P.map((p) => p.meters ? <div class="s-dwide s-ttop"><SThermal /><SHumidityAll /></div> : p.thermo ? <div class="s-dwide"><SThermoCharts p={p} /></div> : (
@@ -2665,7 +2734,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v13';
+export const BUILD = 'v14';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

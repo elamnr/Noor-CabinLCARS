@@ -1206,3 +1206,23 @@ h1, h2 { margin: 0; font-weight: 500; }
 .s-big-md { padding: 8px 18px 10px; }
 .s-lockc .s-chip { min-height: 38px; }
 .s-lockc .s-chip b { font-size: 19px; }
+/* v14: NETWORK page */
+.s-net { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); }
+.s-net .s-acc-r { gap: 12px; }
+.s-net-links { display: flex; flex-direction: column; gap: 10px; }
+.s-net-links .s-big-v { font-size: 40px; }
+.s-net-sum { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--bl-seam); }
+.s-net-sum span { display: flex; flex-direction: column; align-items: center; padding: 6px 0; background: var(--bl-lilac); color: var(--bl-on-lilac); font-size: 15px; }
+.s-net-sum b { font-size: 36px; font-weight: 400; color: var(--bl-tan); line-height: 1; }
+.s-net-sum span[data-tone="alert"] { background: var(--bl-red); color: #000; } .s-net-sum span[data-tone="alert"] b { color: #000; }
+.s-net-sum span[data-tone="na"] { background: var(--bl-rust); }
+.s-nodes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--bl-seam) 12px; }
+.s-node { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; align-items: center; column-gap: 12px; padding: 5px 12px 5px 0; background: var(--bl-lilac); border-left: 12px solid var(--bl-tan); min-height: 52px; }
+.s-node-n { grid-row: 1 / 3; display: flex; flex-direction: column; padding-left: 10px; font-size: 20px; color: var(--bl-title); line-height: 1.1; min-width: 0; }
+.s-node-n small { font-size: 12px; color: var(--bl-on-lilac); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-node b { font-size: 22px; font-weight: 400; color: var(--bl-tan); text-align: right; line-height: 1; }
+.s-node i { font-style: normal; font-size: 13px; color: var(--bl-on-lilac); text-align: right; }
+.s-node[data-tone="alert"] { background: var(--bl-red); border-left-color: #000; }
+.s-node[data-tone="alert"] * { color: #000; }
+.s-node[data-tone="alert"] b { animation: blink var(--bl-dur-blink) steps(1, end) infinite; }
+.s-node[data-tone="na"] { background: var(--bl-rust); border-left-color: var(--bl-rust); }
