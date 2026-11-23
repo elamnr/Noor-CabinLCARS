@@ -2401,7 +2401,6 @@ function StatusFrame() {
   const lamps = ['WATER', 'SEPTIC', 'THERMAL', 'SAFETY', 'ACCESS', 'NETWORK'];
   const pg = lamps.includes(sPage.value) || sPage.value === 'CAMERAS' ? sPage.value : 'STATUS';
   const camNa = S.cameras.filter(([, c]) => { const st = ent(c).value; return !st || UNAVAIL.has(st.state); }).length;
-  const camDet = S.cameras.some(([, , , d]) => d.some(([l, x]) => l !== 'MOTION' && ent(x).value?.state === 'on'));
   const sub = E.items.filter((x) => x.g === pg);
   const head = E.alerts ? `${E.alerts} ALERT${E.alerts > 1 ? 'S' : ''}` : E.warns ? `${E.warns} CAUTION` : 'NOMINAL';
   return (
@@ -2427,8 +2426,8 @@ function StatusFrame() {
             </button>
           );
         })}
-        <button class="nav s-home" data-cur={pg === 'CAMERAS' ? '' : undefined} data-alert={camDet ? '' : undefined} style={{ '--nav': `var(--bl-${camDet ? 'red' : camNa ? 'rust' : 'violet'})` }} onClick={() => goStatus('CAMERAS')}>
-          <span class="nav-c">{camDet ? 'DETECTION' : camNa ? `${camNa} OFFLINE` : `${S.cameras.length} FEEDS`}</span><span class="nav-l">CAMERAS</span>
+        <button class="nav s-home" data-cur={pg === 'CAMERAS' ? '' : undefined} data-alert={camNa ? '' : undefined} style={{ '--nav': `var(--bl-${camNa ? 'red' : 'violet'})` }} onClick={() => goStatus('CAMERAS')}>
+          <span class="nav-c">{camNa ? `${camNa} OFFLINE` : `${S.cameras.length} FEEDS`}</span><span class="nav-l">CAMERAS</span>
         </button>
         <span class="side-fill" />
         {link.value.mode !== 'hass' && <button class="nav" style={{ '--nav': 'var(--bl-amber)' }} onClick={() => (linkOpen.value = true)}><span class="nav-c">07-00</span><span class="nav-l">LINK</span></button>}
@@ -2483,7 +2482,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v7';
+export const BUILD = 'v8';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
