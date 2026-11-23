@@ -7,7 +7,7 @@ export const SHARED = {
   // Music Assistant players any console can drive (label, entity). Fire Room Bose = the MA entity, not the Bose integration's.
   music: ['media_player.bedroom_2', 'media_player.vr_room', 'media_player.kitchen', 'media_player.bathroom', 'media_player.dax_s_room', 'media_player.fire_room_bose', 'media_player.retro_whole_house'],
   // console reload helpers: _all reloads every console (pressed by the deploy automation), _kitchen the kitchen TV only
-  reload: ['input_button.bridgeline_reload_all', 'input_button.bridgeline_reload_kitchen'],
+  reload: ['input_button.cabin_lcars_reload_all', 'input_button.cabin_lcars_reload_kitchen'],
   doors: ['binary_sensor.front_door_contact_input', 'binary_sensor.kitchen_entry_contact_input', 'binary_sensor.garage_entry_contact_input', 'binary_sensor.fire_room_entry_contact_input'],
 };
 

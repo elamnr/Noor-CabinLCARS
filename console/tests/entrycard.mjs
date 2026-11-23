@@ -3,19 +3,19 @@ const b = await chromium.launch(); const p = await b.newPage({ viewport:{width:1
 const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.route(/fonts\.(googleapis|gstatic)/, r=>r.abort());
 await p.setContent(`<html><body style="margin:0"><div style="height:56px"></div><div id="m"></div></body></html>`);
-await p.addScriptTag({ content: fs.readFileSync('dist/bridgeline-bedroom-console.js','utf8') });
+await p.addScriptTag({ content: fs.readFileSync('dist/cabin-lcars.js','utf8') });
 await p.evaluate(() => {
   const st=(state,attributes={})=>({state,attributes,last_changed:'2026-10-30T03:00:00Z',last_updated:'2026-10-30T03:00:00Z'});
   const states = { 'light.vr_room': st('on',{brightness:5,color_mode:'color_temp',color_temp_kelvin:2000}), 'cover.blind_vr_room_left': st('open',{current_position:100}), 'cover.blind_vr_room_right': st('open',{current_position:100}), 'cover.vr_room_large_blind': st('unavailable'), 'weather.forecast_retrohouse': st('sunny',{temperature:50,humidity:60}), 'input_boolean.away_mode': st('off'), 'automation.goodbye': st('on',{current:0}), 'binary_sensor.all_doors': st('off'), 'calendar.elam_personal': st('off',{friendly_name:'Elam personal'}), 'calendar.elam_noor_916': st('off',{friendly_name:'Elam noor - 916'}) };
   window.calls=[];
-  const el = document.createElement('bridgeline-console'); el.setConfig({room:'entry'});
+  const el = document.createElement('cabin-lcars'); el.setConfig({room:'entry'});
   const now=Date.now();
   el.hass = { states, connected:true, config:{version:'2026.10.3'}, connection:{ sendMessagePromise: async (m)=>{ window.calls.push(m); if (m.return_response) return {response:{[m.target.entity_id]:{forecast:[{datetime:new Date().toISOString(),condition:'sunny',temperature:60,templow:40,precipitation_probability:5}]}}}; } },
     callApi: async (method, path)=>{ window.calls.push({api:path.split('?')[0]}); return [{summary:'Test event', start:{dateTime:new Date(now+3600e3).toISOString()}, end:{dateTime:new Date(now+7200e3).toISOString()}}]; } };
   document.getElementById('m').appendChild(el); window.el=el;
 });
 await p.waitForTimeout(600);
-const root = p.locator('bridgeline-console');
+const root = p.locator('cabin-lcars');
 console.log('title', await root.locator('.hd-t').textContent(), 'agenda:', await root.locator('.wx-grid').first().textContent());
 await root.locator('.nav', {hasText:'COMMANDS'}).click();
 await root.locator('.blk', {hasText:'GOODBYE'}).click();

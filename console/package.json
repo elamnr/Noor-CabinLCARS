@@ -1,5 +1,5 @@
 {
-  "name": "bridgeline-console",
+  "name": "cabin-lcars",
   "version": "1.29.0",
   "description": "LCARS-style Home Assistant consoles for Retro House (Lovelace custom card + standalone previews)",
   "scripts": {

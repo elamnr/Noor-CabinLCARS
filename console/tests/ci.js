@@ -50,15 +50,27 @@ const fail = (m) => { fails.push(m); console.log('FAIL', m); };
     await p.close();
   }
 
-  const bundle = fs.readFileSync('dist/bridgeline-bedroom-console.js', 'utf8');
-  for (const room of ['bedroom', 'office', 'entry', 'house', 'kitchen']) {
+  {
+    const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
+    p.on('pageerror', (e) => fail(`status: ${e.message}`));
+    await block(p);
+    await p.goto('file://' + process.cwd() + '/dist/status-console.html');
+    await p.waitForTimeout(900);
+    const n = await p.evaluate(() => document.querySelectorAll('.s-tile, .tm').length);
+    if (!n) fail('status: no tiles or meters rendered');
+    else console.log('ok status', n, 'tiles+meters');
+    await p.close();
+  }
+
+  const bundle = fs.readFileSync('dist/cabin-lcars.js', 'utf8');
+  for (const room of ['status', 'bedroom', 'office', 'entry', 'house', 'kitchen']) {
     const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
     p.on('pageerror', (e) => fail(`card ${room}: ${e.message}`));
     await block(p);
     await p.setContent('<html><body><div id="m"></div></body></html>');
     await p.addScriptTag({ content: bundle });
     const ok = await p.evaluate(async (room) => {
-      const el = document.createElement('bridgeline-console');
+      const el = document.createElement('cabin-lcars');
       el.setConfig({ room });
       el.hass = { states: {}, connected: true, config: { version: '2026.10.0' }, devices: {},
         callService: async () => null, callApi: async () => null,

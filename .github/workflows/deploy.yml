@@ -56,11 +56,11 @@ jobs:
       - name: Assemble deploy files
         run: |
           mkdir -p ../out
-          cp dist/bridgeline-bedroom-console.js ../out/
-          cp loader/bridgeline-loader.js ../out/
+          cp dist/cabin-lcars.js ../out/
+          cp loader/cabin-lcars-loader.js ../out/
           BUILD=$(grep -oE "BUILD = '[^']+'" src/app.jsx | cut -d"'" -f2)
-          printf '{"sha":"%s","build":"%s"}\n' "${GITHUB_SHA::7}" "$BUILD" > ../out/bridgeline-version.json
-          cat ../out/bridgeline-version.json
+          printf '{"sha":"%s","build":"%s"}\n' "${GITHUB_SHA::7}" "$BUILD" > ../out/cabin-lcars-version.json
+          cat ../out/cabin-lcars-version.json
 
       - name: Publish to deploy branch
         working-directory: out

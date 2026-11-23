@@ -144,13 +144,13 @@ const useRoom = () => useContext(RoomCtx);
 const pages = {};
 function pageSig(R) {
   if (!pages[R.key]) {
-    const k = `bridgeline.${R.key}.page`;
+    const k = `cabinlcars.${R.key}.page`;
     let v = 'MAIN'; try { const s = localStorage.getItem(k); if (R.pages.includes(s)) v = s; } catch {}
     pages[R.key] = signal(v);
   }
   return pages[R.key];
 }
-function go(R, n) { pageSig(R).value = n; try { localStorage.setItem(`bridgeline.${R.key}.page`, n); } catch {} }
+function go(R, n) { pageSig(R).value = n; try { localStorage.setItem(`cabinlcars.${R.key}.page`, n); } catch {} }
 
 /* ---------- chrono + calendar ---------- */
 const clock = signal(new Date());
@@ -594,7 +594,7 @@ function MediaPage() {
 }
 
 const mSpeaker = {};
-const MS_KEY = (room) => `bridgeline.music.${room}`;
+const MS_KEY = (room) => `cabinlcars.music.${room}`;
 function speakerSig(R) {
   if (!mSpeaker[R.key]) {
     const saved = LS.get(MS_KEY(R.key));
@@ -802,7 +802,7 @@ const srchArtist = signal(null); // { it, albums, loading, err }
 const kbOpen = signal(false);
 const kbText = signal('');
 const feed = signal({}); // play feedback by key: busy | ok | err
-const RECENT_KEY = 'bridgeline.music.recent';
+const RECENT_KEY = 'cabinlcars.music.recent';
 const recent = signal(LS.get(RECENT_KEY) ?? []);
 const SRCH_LIMIT = 20;
 function remember(q) {
@@ -1470,7 +1470,7 @@ const settingsTab = signal('displays');
 const deployed = signal(null);
 async function loadDeployed() {
   if (link.peek().mode === 'sim') { deployed.value = { sim: true }; return; }
-  try { const r = await fetch('/local/bridgeline-version.json', { cache: 'no-store' }); deployed.value = r.ok ? await r.json() : { err: `HTTP ${r.status}` }; }
+  try { const r = await fetch('/local/cabin-lcars-version.json', { cache: 'no-store' }); deployed.value = r.ok ? await r.json() : { err: `HTTP ${r.status}` }; }
   catch (e) { deployed.value = { err: 'UNREACHABLE' }; }
 }
 /** Reloads this page when a reload helper is pressed after load (deploy automation or SETTINGS). */
@@ -1655,7 +1655,7 @@ function Frame() {
   const P = PAGE_DEF[pg][1];
   return (
     <div class="app" onClickCapture={clickSound}>
-      <div class="elbow-t"><span class="elbow-code">{code(`retro-house-${R.key}`, 6)}</span></div>
+      <div class="elbow-t"><span class="elbow-code">{code(`tiny-cabins-${R.key}`, 6)}</span></div>
       <header class="hd">
         <span class="corner-t"><i /></span>
         <span class="hd-bar" />
@@ -2029,7 +2029,7 @@ function KitchenFrame() {
   const mode = kitchenMode(R);
   return (
     <div class="app k-app">
-      <div class="elbow-t"><span class="elbow-code">{code(`retro-house-${R.key}`, 6)}</span></div>
+      <div class="elbow-t"><span class="elbow-code">{code(`tiny-cabins-${R.key}`, 6)}</span></div>
       <header class="hd">
         <span class="corner-t"><i /></span>
         <span class="hd-bar" />

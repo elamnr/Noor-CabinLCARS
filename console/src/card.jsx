@@ -1,4 +1,4 @@
-// Lovelace custom card wrapper: <bridgeline-bedroom-console>.
+// Lovelace custom card wrapper: <cabin-lcars>.
 // Home Assistant hands the card a `hass` object on every state change; no tokens or sockets needed.
 import { render } from 'preact';
 import { batch } from '@preact/signals';
@@ -6,10 +6,10 @@ import { App, ALL_IDS, dom } from './app.jsx';
 import { ent, link, ready, setBackend } from './ha.js';
 import CSS from './card.css.txt';
 
-const TAG = 'bridgeline-bedroom-console';
+const TAG = 'cabin-lcars';
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&family=Saira:wght@100..500&display=swap';
 
-class BridgelineBedroomConsole extends HTMLElement {
+class CabinLcars extends HTMLElement {
   setConfig(config) { this._config = config || {}; }
   getCardSize() { return 12; }
   getGridOptions() { return { columns: 'full', rows: 'auto' }; }
@@ -78,15 +78,9 @@ class BridgelineBedroomConsole extends HTMLElement {
   }
 }
 
-BridgelineBedroomConsole.defaultRoom = 'bedroom';
-class BridgelineConsole extends BridgelineBedroomConsole {}
-BridgelineConsole.defaultRoom = 'bedroom';
+CabinLcars.defaultRoom = 'status';
 window.customCards = window.customCards || [];
 if (!customElements.get(TAG)) {
-  customElements.define(TAG, BridgelineBedroomConsole);
-  window.customCards.push({ type: TAG, name: 'Bridgeline Bedroom Console', description: 'LCARS-style Primary Bed console' });
-}
-if (!customElements.get('bridgeline-console')) {
-  customElements.define('bridgeline-console', BridgelineConsole);
-  window.customCards.push({ type: 'bridgeline-console', name: 'Bridgeline Console', description: 'LCARS-style room console (room: bedroom | office | entry | house)' });
+  customElements.define(TAG, CabinLcars);
+  window.customCards.push({ type: TAG, name: 'CabinLCARS Console', description: 'Tiny Cabins LCARS console (room: status)' });
 }

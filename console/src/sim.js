@@ -138,8 +138,8 @@ const HOUSE_SEED = {
   'light.plant_lights': S('on', { friendly_name: 'Plant Lights', supported_color_modes: ['onoff'], color_mode: 'onoff', entity_id: HOUSE.zones[7][2] }),
   'scene.whole_house_lights_relax': S('2026-10-05T05:03:48+00:00', { friendly_name: 'All Hue Lights Relax' }),
   'scene.kitchen_ambiance': S('2026-06-08T01:57:40+00:00', { friendly_name: 'Kitchen Ambiance' }),
-  'input_button.bridgeline_reload_all': S('2026-11-06T20:23:17+00:00', { friendly_name: 'Bridgeline Reload All Consoles' }),
-  'input_button.bridgeline_reload_kitchen': S('2026-11-06T20:23:17+00:00', { friendly_name: 'Bridgeline Reload Kitchen Display' }),
+  'input_button.cabin_lcars_reload_all': S('2026-11-06T20:23:17+00:00', { friendly_name: 'CabinLCARS Reload All Consoles' }),
+  'input_button.cabin_lcars_reload_kitchen': S('2026-11-06T20:23:17+00:00', { friendly_name: 'CabinLCARS Reload Kitchen Display' }),
   'input_button.find_tricorder': S('2026-04-28T05:56:49+00:00', { friendly_name: 'Find Tricorder' }),
   'input_button.find_katie_s_iphone': S('2024-12-18T06:04:22+00:00', { friendly_name: "Find Katie's iPhone" }),
   'input_button.find_orion_s_ipad': S('unknown', { friendly_name: "Find Orion's iPad" }),
@@ -366,7 +366,7 @@ export function simulate(seed) {
     // In-memory stand-in for HA's media library (simulation only; nothing is shared or kept).
     async mediaBrowse(id) {
       if (id === 'media-source://media_source/local') return { children: [] };
-      if (!id.endsWith('/bridgeline-sounds')) throw new Error('NOT FOUND');
+      if (!id.endsWith('/cabin-lcars-sounds')) throw new Error('NOT FOUND');
       return { children: Object.entries(simMedia).map(([name, f]) => ({ title: name, media_content_id: `${id}/${name}`, url: f.url })) };
     },
     async mediaResolve(id) { const f = simMedia[id.split('/').pop()]; if (!f) throw new Error('NOT FOUND'); return { url: f.url, mime_type: f.type }; },

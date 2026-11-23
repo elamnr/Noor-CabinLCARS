@@ -3,7 +3,7 @@
 import { signal } from '@preact/signals';
 import { LS } from './ha.js';
 
-const KEY = 'bridgeline.bedroom.sound';
+const KEY = 'cabinlcars.bedroom.sound';
 export const soundOn = signal(LS.get(KEY) ?? true);
 export function toggleSound() { soundOn.value = !soundOn.value; LS.set(KEY, soundOn.value); if (soundOn.value) sfx('on'); }
 
@@ -31,7 +31,7 @@ const VOICES = {
 const LEVEL = { dooralarm: 0.06, fault: 0.06, alert: 0.07, arm: 0.06, event: 0.16 };
 
 /* ---------- shared custom sounds (Home Assistant media library) ----------
-   Files live in HA's local media folder `bridgeline-sounds/`, named `<slot>--<epoch ms>.<ext>`.
+   Files live in HA's local media folder `cabin-lcars-sounds/`, named `<slot>--<epoch ms>.<ext>`.
    Every tablet lists that folder, downloads the newest file per slot, and plays it in place of the
    built-in tone. Upload/reset need an HA admin user; playback works for any user. */
 export const SOUND_SLOTS = [
@@ -50,7 +50,7 @@ export const SOUND_SLOTS = [
 const SLOT_KEYS = new Set(SOUND_SLOTS.map(([k]) => k));
 export const MAX_BYTES = 2 * 1024 * 1024;
 export const MAX_SECONDS = 10;
-const FOLDER_NAME = 'bridgeline-sounds';
+const FOLDER_NAME = 'cabin-lcars-sounds';
 const TYPES = { mp3: 'audio/mpeg', wav: 'audio/wav', m4a: 'audio/mp4', aac: 'audio/aac', ogg: 'audio/ogg', oga: 'audio/ogg', webm: 'audio/webm', flac: 'audio/flac' };
 
 /** slot → { id, at (upload time ms) } for slots with a shared file */

@@ -37,6 +37,6 @@ ccss = ccss.replace('height: 100dvh; column-gap', 'height: calc(100vh - var(--he
 ccss = ccss.replace(/\[data-bl-theme="(\w+)"\]\{/g, ':host([data-bl-theme="$1"]){');
 writeFileSync('src/card.css.txt', ccss);
 const c = await build({ entryPoints: ['src/card.jsx'], bundle: true, minify: true, format: 'iife', write: false, jsx: 'automatic', jsxImportSource: 'preact', target: 'es2020', legalComments: 'none', loader: { '.txt': 'text', '.webp': 'dataurl' } });
-const banner = '/* Bridgeline Bedroom Console card - Preact + Signals. Source: bedroom-console project. */\n';
-writeFileSync('dist/bridgeline-bedroom-console.js', banner + c.outputFiles[0].text);
+const banner = '/* CabinLCARS console card - Preact + Signals. Source: elamnr/Noor-CabinLCARS. */\n';
+writeFileSync('dist/cabin-lcars.js', banner + c.outputFiles[0].text);
 console.log('card bytes', c.outputFiles[0].text.length);

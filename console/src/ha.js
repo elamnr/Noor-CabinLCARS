@@ -2,7 +2,7 @@
 // OAuth / long-lived-token auth, and a simulation backend with the same interface.
 import { signal, batch } from '@preact/signals';
 
-const STORE = 'bridgeline.bedroom.auth';
+const STORE = 'cabinlcars.bedroom.auth';
 export const LS = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },

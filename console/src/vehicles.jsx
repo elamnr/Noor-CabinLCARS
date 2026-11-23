@@ -10,7 +10,7 @@ import tessieImg from './img/tessie.webp';
 
 const IMG = { raichu: raichuImg, tessie: tessieImg };
 const W = 1092, H = 640;
-const SEL_KEY = 'bridgeline.vehicle';
+const SEL_KEY = 'cabinlcars.vehicle';
 const sel = signal(LS.get(SEL_KEY));
 const armed = signal(null);
 let armTimer;

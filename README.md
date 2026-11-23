@@ -1,60 +1,20 @@
-# Noor-LCARS
+# Noor-CabinLCARS
 
-LCARS-style Home Assistant consoles for Retro House, built on the **Bridgeline** design system.
-
-| Folder | What it is |
-|---|---|
-| `console/` | The consoles: one Lovelace custom card (`custom:bridgeline-console`) serving five rooms, plus standalone simulation previews. Preact + signals, bundled with esbuild. See `console/README.md` for deployment, decisions on record and open items. |
-| `design-system/` | The Bridgeline design system the consoles were built from: tokens (`tokens/*.css`), React components, guideline specimen pages, UI kits. See `design-system/README.md`. |
-| `docs/screenshots/` | Simulation previews of each console. |
+LCARS-style Home Assistant consoles for Tiny Cabins (Log Cabin and Bunk House), built on the Bridgeline design system.
+Forked from `elamnr/Noor-LCARS` @ 4b2a4d5 (Retro House). See `docs/HANDOFF.md` for the architecture this repo inherits.
 
 ## Consoles
-
-| Dashboard | Card config | Device |
+| Room key | Card | Screen |
 |---|---|---|
-| `bedroom-console` | `custom:bridgeline-bedroom-console` | Bedroom tablet |
-| `office-console` | `custom:bridgeline-console`, `room: office` | Office tablet |
-| `entry-console` | `custom:bridgeline-console`, `room: entry` | Basement entry tablet |
-| `house-console` | `custom:bridgeline-console`, `room: house` | Retro House main tablet |
-| `kitchen-console` | `custom:bridgeline-console`, `room: kitchen` | Kitchen TV (display only) |
+| `status` | `type: custom:cabin-lcars`, `room: status` | Master Systems Status, landscape desktop, display only |
 
-## Build and deploy
+The Retro House room definitions (bedroom, office, entry, house, kitchen) are still in `console/src/rooms.js` and unused here.
 
-Deployment is automatic. A push to `main` that touches `console/` runs `.github/workflows/deploy.yml`:
+## Deploy
+- Lovelace resource: `/local/cabin-lcars-loader.js` (type `module`).
+- Files served from `/config/www/`: `cabin-lcars.js`, `cabin-lcars-loader.js`, `cabin-lcars-version.json`.
+- Push to `main` → GitHub Action builds, tests, publishes the `deploy` branch, then calls `HA_WEBHOOK_URL` (repo secret) so HA runs `shell_command.cabin_lcars_deploy` (`!secret cabin_lcars_deploy_cmd`, template in `console/deploy/secrets.example.yaml`).
+- Reload helpers: `input_button.cabin_lcars_reload_all`, `input_button.cabin_lcars_reload_kitchen`.
 
-1. `npm ci`, `node build.mjs`, then `node tests/ci.js` (every room and page, kitchen modes, and the Lovelace card bundle in every room). Any failure stops the run; nothing is published.
-2. The built `bridgeline-bedroom-console.js`, `bridgeline-loader.js` and `bridgeline-version.json` (`{sha, build}`) are force-pushed as a single commit to the `deploy` branch.
-3. The workflow POSTs `{"sha": ...}` to the Home Assistant webhook in the `HA_WEBHOOK_URL` repository secret.
-4. The HA automation **Bridgeline Console Deploy** runs `shell_command.bridgeline_deploy`, which downloads the three files from the `deploy` branch with a read-only fine-grained token, swaps them into `/config/www/` atomically, and notifies on success or failure.
-
-The Lovelace resource is `/local/bridgeline-loader.js` (module). The loader reads `bridgeline-version.json` uncached and imports the bundle with `?v=<sha>`, so screens pick up a deploy on their next reload with no resource edit and no cache clearing. Other branches never deploy, so design work can be previewed and iterated before it reaches `main`.
-
-`console/dist/` is build output and is not committed. Manual build:
-
-```
-cd console
-npm ci
-npm run build        # -> dist/bridgeline-bedroom-console.js (+ preview HTML)
-npm test             # CI checks (Playwright 1.63; run `npx playwright install chromium` once)
-```
-
-### Home Assistant side
-
-`configuration.yaml`:
-
-```yaml
-shell_command:
-  bridgeline_deploy: !secret bridgeline_deploy_cmd
-```
-
-`secrets.yaml` holds the full command, including the token (never commit it). Template in `console/deploy/secrets.example.yaml`.
-
-## Previews and tests
-
-`console/dist/<room>-console.html` runs against a simulation snapshot (`?room=` overrides, `?kmode=calendar|camera` for the kitchen modes). `console/tests/ci.js` is the deploy gate; the other scripts in `console/tests/` are screenshot and layout probes used during design work.
-
-## Notes
-
-- Car cutaway images in `console/src/img/` were supplied by the owner and are bundled into the card as data URLs.
-- No credentials, tokens or VINs are stored in source. The VIN on the vehicle SYSTEM DETAILS screen is read at runtime from the Home Assistant device registry.
-- `design-system/` is the Bridgeline export as published. Its README cites a reference wallpaper (`uploads/LCARS-2021-iPhone-SE-8-Picard.png`) that is deliberately **not** included here because it is third-party artwork.
+## Palette
+Sea Pine, a Cabin-only override at the end of `console/src/app.css`. Bridgeline tokens (`--bl-*`) are unchanged.
