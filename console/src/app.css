@@ -1062,3 +1062,14 @@ h1, h2 { margin: 0; font-weight: 500; }
 .s-det span[data-on][data-kind="motion"] { background: var(--bl-sunflower); color: #000; }
 .s-det span[data-on] i { color: #000; animation: blink var(--bl-dur-blink) steps(1, end) infinite; }
 .s-det span[data-na] { background: var(--bl-rust); }
+/* v5: larger device labels for readability (labels were 12-14 px on the 1740 px canvas) */
+.s-tile { min-height: 72px; }
+.s-tile span { font-size: 17px; line-height: 1.1; }
+.s-detail .s-tile span { font-size: 18px; }
+.s-unit-r span { font-size: 14px; }
+.s-al i { font-size: 14px; }
+.s-therm .tm-s, .s-hum .tm-s { font-size: 14px; }
+.s-therm .tm-l, .s-hum .tm-l { font-size: 17px; }
+.s-det span { font-size: 16px; }
+.s-app .s-lamp .nav-c, .s-app .nav.s-home .nav-c { font-size: 12px; }
+.s-detail .s-tile span { white-space: normal; overflow: visible; }
