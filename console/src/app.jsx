@@ -2359,7 +2359,7 @@ function SThermoCharts({ p }) {
 }
 
 const sPage = signal((() => { try { return localStorage.getItem('cabinlcars.status.page') || 'STATUS'; } catch { return 'STATUS'; } })());
-function goStatus(p) { sPage.value = p; try { localStorage.setItem('cabinlcars.status.page', p); } catch {} }
+function goStatus(p) { if (p !== 'CAMERAS' || sPage.peek() === 'CAMERAS') camView.value = null; sPage.value = p; try { localStorage.setItem('cabinlcars.status.page', p); } catch {} }
 const LAMP_TONE = { WATER: 'sky', SEPTIC: 'peach', THERMAL: 'tan', SAFETY: 'red', ACCESS: 'violet', NETWORK: 'ice' };
 function SDetail({ k }) {
   const S = useRoom().status; const P = S.detail?.[k] ?? [];
@@ -2381,7 +2381,7 @@ function SCam({ c: [label, id, wide, det] }) {
   return (
     <section class="panel s-cam" data-wide={wide ? '' : undefined} data-hot={hot ? '' : undefined}>
       <SecHead title={label} tone={hot ? 'red' : active.length ? 'sunflower' : 'violet'} />
-      {src ? <img class="s-feed" data-link="" onClick={() => openEntity(id)} src={src} alt={`${label} camera`} />
+      {src ? <img class="s-feed" data-link="" title="Open full screen" onClick={() => (camView.value = { kind: 'cam', c: [label, id, wide, det] })} src={src} alt={`${label} camera`} />
         : <div class="s-feed alert-nocam"><span>NO FEED</span><small>{link.value.mode === 'sim' ? 'SIMULATION • CAMERA REQUIRES LIVE LINK' : `${UP(cam?.state ?? 'CAMERA NOT FOUND')}`}</small></div>}
       <div class="s-det">
         {det.map(([l, d]) => { const st = ent(d).value; const on = st?.state === 'on'; return <span data-link="" onClick={() => openEntity(d)} data-on={on ? '' : undefined} data-kind={l === 'MOTION' ? 'motion' : 'ai'} data-na={!st || UNAVAIL.has(st.state) ? '' : undefined}>{l}<i>{!st || UNAVAIL.has(st.state) ? '--' : on ? 'NOW' : ago(st.last_changed)}</i></span>; })}
@@ -2396,12 +2396,84 @@ function SWebcam({ w: [label, src, page] }) {
       {link.value.mode === 'sim'
         ? <div class="s-feed alert-nocam"><span>EXTERNAL FEED</span><small>SIMULATION • LOADS ON THE LIVE CONSOLE</small></div>
         : <iframe class="s-feed" src={src} title={label} allow="autoplay; fullscreen" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" />}
-      <div class="s-det"><span>PUBLIC WEBCAM<i>NEST LIVE</i></span><span data-link="" onClick={() => window.open(page, '_blank', 'noopener')}>SOURCE<i>OPEN PAGE</i></span></div>
+      <div class="s-det"><span>PUBLIC WEBCAM<i>NEST LIVE</i></span><span data-link="" onClick={() => (camView.value = { kind: 'web', w: [label, src, page] })}>VIEW<i>FULL SCREEN</i></span><span data-link="" onClick={() => window.open(page, '_blank', 'noopener')}>SOURCE<i>OPEN PAGE</i></span></div>
     </section>
   );
 }
+
+/* FULL-SCREEN CAMERA VIEWER: one feed filling the page, with digital zoom (1-6x) and pan.
+   Pan is kept as a fraction of the feed box so it is independent of the page's fit-to-window zoom. */
+const camView = signal(null);
+const ZMAX = 6;
+function SCamViewer({ v }) {
+  const z = useSignal(1), px = useSignal(0), py = useSignal(0);
+  const stage = useRef(null); const drag = useRef(null);
+  const [label, id] = v.kind === 'cam' ? v.c : v.w;
+  const det = v.kind === 'cam' ? v.c[3] : [];
+  const src = useCameraSrc(v.kind === 'cam' ? id : null);
+  const clamp = (x, zz) => { const m = (zz - 1) / 2; return Math.max(-m, Math.min(m, x)); };
+  const setZ = (z2, cx = 0, cy = 0) => {
+    z2 = Math.max(1, Math.min(ZMAX, Math.round(z2 * 100) / 100));
+    const z1 = z.peek();
+    px.value = clamp(cx - (cx - px.peek()) * (z2 / z1), z2); py.value = clamp(cy - (cy - py.peek()) * (z2 / z1), z2); z.value = z2;
+  };
+  const pan = (dx, dy) => { px.value = clamp(px.peek() + dx, z.peek()); py.value = clamp(py.peek() + dy, z.peek()); };
+  const reset = () => { z.value = 1; px.value = 0; py.value = 0; };
+  const rel = (e) => { const r = stage.current.getBoundingClientRect(); return [(e.clientX - r.left) / r.width - 0.5, (e.clientY - r.top) / r.height - 0.5, r]; };
+  useEffect(() => {
+    const k = (e) => {
+      if (e.key === 'Escape') camView.value = null;
+      else if (e.key === '+' || e.key === '=') setZ(z.peek() * 1.25);
+      else if (e.key === '-') setZ(z.peek() / 1.25);
+      else if (e.key === '0') reset();
+      else if (e.key.startsWith('Arrow')) { const d = 0.08; pan(e.key === 'ArrowLeft' ? d : e.key === 'ArrowRight' ? -d : 0, e.key === 'ArrowUp' ? d : e.key === 'ArrowDown' ? -d : 0); e.preventDefault(); }
+    };
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
+  }, []);
+  const onWheel = (e) => { e.preventDefault(); const [cx, cy] = rel(e); setZ(z.peek() * (e.deltaY < 0 ? 1.15 : 1 / 1.15), cx, cy); };
+  const onDown = (e) => { if (z.peek() <= 1) return; const [, , r] = rel(e); drag.current = { x: e.clientX, y: e.clientY, w: r.width, h: r.height }; e.currentTarget.setPointerCapture?.(e.pointerId); };
+  const onMove = (e) => { const d = drag.current; if (!d) return; pan((e.clientX - d.x) / d.w, (e.clientY - d.y) / d.h); d.x = e.clientX; d.y = e.clientY; };
+  const onUp = () => { drag.current = null; };
+  const onDbl = (e) => { const [cx, cy] = rel(e); if (z.peek() > 1) reset(); else setZ(2.5, cx, cy); };
+  const tf = { transform: `translate(${(px.value * 100).toFixed(2)}%, ${(py.value * 100).toFixed(2)}%) scale(${z.value})` };
+  const cam = v.kind === 'cam' ? ent(id).value : null;
+  return (
+    <div class="s-cv">
+      <div class="s-cv-main">
+        <SecHead title={`${label} • ${z.value === 1 ? 'FULL VIEW' : `${z.value.toFixed(1)}X`}`} tone="violet" />
+        <div class="s-cv-stage" ref={stage} data-zoomed={z.value > 1 ? '' : undefined} onWheel={onWheel} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDblClick={onDbl}>
+          {v.kind === 'web'
+            ? (link.value.mode === 'sim' ? <div class="s-cv-media alert-nocam" style={tf}><span>EXTERNAL FEED</span><small>SIMULATION</small></div> : <iframe class="s-cv-media" style={tf} src={v.w[1]} title={label} allow="autoplay; fullscreen" />)
+            : src ? <img class="s-cv-media" style={tf} src={src} alt={label} draggable={false} />
+            : <div class="s-cv-media alert-nocam" style={tf}><span>NO FEED</span><small>{link.value.mode === 'sim' ? 'SIMULATION • CAMERA REQUIRES LIVE LINK' : UP(cam?.state ?? 'CAMERA NOT FOUND')}</small></div>}
+          {v.kind === 'web' && z.value > 1 && <div class="s-cv-grab" />}
+          <div class="s-cv-mini" aria-hidden="true"><i style={{ width: `${100 / z.value}%`, height: `${100 / z.value}%`, left: `${(0.5 - 0.5 / z.value - px.value / z.value) * 100}%`, top: `${(0.5 - 0.5 / z.value - py.value / z.value) * 100}%` }} /></div>
+        </div>
+        {det.length > 0 && <div class="s-det">{det.map(([l, d]) => { const st = ent(d).value; const on = st?.state === 'on'; return <span data-link="" onClick={() => openEntity(d)} data-on={on ? '' : undefined} data-kind={l === 'MOTION' ? 'motion' : 'ai'} data-na={!st || UNAVAIL.has(st.state) ? '' : undefined}>{l}<i>{!st || UNAVAIL.has(st.state) ? '--' : on ? 'NOW' : ago(st.last_changed)}</i></span>; })}</div>}
+      </div>
+      <div class="s-cv-ctl">
+        <button class="s-cv-b s-cv-close" onClick={() => (camView.value = null)}>CLOSE<small>ESC</small></button>
+        <div class="s-cv-h">ZOOM</div>
+        <div class="s-cv-row s-cv-pm"><button class="s-cv-b" onClick={() => setZ(z.peek() / 1.25)} disabled={z.value <= 1}>−</button><button class="s-cv-b" onClick={() => setZ(z.peek() * 1.25)} disabled={z.value >= ZMAX}>+</button></div>
+        <div class="s-cv-row">{[1, 2, 3, 4].map((n) => <button class="s-cv-b s-cv-lv" data-sel={Math.abs(z.value - n) < 0.05 ? '' : undefined} onClick={() => (n === 1 ? reset() : setZ(n, px.peek(), py.peek()))}>{n}X</button>)}</div>
+        <div class="s-cv-h">PAN</div>
+        <div class="s-cv-pad">
+          <span /><button class="s-cv-b" onClick={() => pan(0, 0.1)} disabled={z.value <= 1}>▲</button><span />
+          <button class="s-cv-b" onClick={() => pan(0.1, 0)} disabled={z.value <= 1}>◀</button><button class="s-cv-b" onClick={reset}>⦿</button><button class="s-cv-b" onClick={() => pan(-0.1, 0)} disabled={z.value <= 1}>▶</button>
+          <span /><button class="s-cv-b" onClick={() => pan(0, -0.1)} disabled={z.value <= 1}>▼</button><span />
+        </div>
+        <button class="s-cv-b" onClick={reset} disabled={z.value === 1 && !px.value && !py.value}>RESET VIEW</button>
+        <span class="s-cv-fill" />
+        {v.kind === 'cam' ? <button class="s-cv-b" onClick={() => openEntity(id)}>DEVICE PAGE</button> : <button class="s-cv-b" onClick={() => window.open(v.w[2], '_blank', 'noopener')}>SOURCE PAGE</button>}
+        <div class="s-cv-tip">SCROLL OR +/− TO ZOOM • DRAG TO PAN • DOUBLE-CLICK TO ZOOM IN / RESET</div>
+      </div>
+    </div>
+  );
+}
+
 function SCameras() {
   const S = useRoom().status;
+  if (camView.value) return <SCamViewer v={camView.value} key={camView.value.c?.[1] ?? camView.value.w?.[1]} />;
   const top = S.cameras.filter((c) => !c[2]), wide = S.cameras.filter((c) => c[2]);
   return <div class="s-cams" style={{ '--n': top.length + (S.webcams?.length ?? 0) }}>{top.map((c) => <SCam c={c} />)}{(S.webcams ?? []).map((w) => <SWebcam w={w} />)}{wide.map((c) => <SCam c={c} />)}</div>;
 }
@@ -2498,7 +2570,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v10';
+export const BUILD = 'v11';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
