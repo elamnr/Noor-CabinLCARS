@@ -2389,9 +2389,21 @@ function SCam({ c: [label, id, wide, det] }) {
     </section>
   );
 }
+function SWebcam({ w: [label, src, page] }) {
+  return (
+    <section class="panel s-cam s-web">
+      <SecHead title={label} tone="sky" />
+      {link.value.mode === 'sim'
+        ? <div class="s-feed alert-nocam"><span>EXTERNAL FEED</span><small>SIMULATION • LOADS ON THE LIVE CONSOLE</small></div>
+        : <iframe class="s-feed" src={src} title={label} allow="autoplay; fullscreen" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" />}
+      <div class="s-det"><span>PUBLIC WEBCAM<i>NEST LIVE</i></span><span data-link="" onClick={() => window.open(page, '_blank', 'noopener')}>SOURCE<i>OPEN PAGE</i></span></div>
+    </section>
+  );
+}
 function SCameras() {
   const S = useRoom().status;
-  return <div class="s-cams">{S.cameras.map((c) => <SCam c={c} />)}</div>;
+  const top = S.cameras.filter((c) => !c[2]), wide = S.cameras.filter((c) => c[2]);
+  return <div class="s-cams" style={{ '--n': top.length + (S.webcams?.length ?? 0) }}>{top.map((c) => <SCam c={c} />)}{(S.webcams ?? []).map((w) => <SWebcam w={w} />)}{wide.map((c) => <SCam c={c} />)}</div>;
 }
 function StatusFrame() {
   const R = useRoom(); const S = R.status;
@@ -2486,7 +2498,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v9';
+export const BUILD = 'v10';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
