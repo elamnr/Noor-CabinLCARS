@@ -1,7 +1,7 @@
 import { createContext } from 'preact';
 import { useEffect, useRef, useContext } from 'preact/hooks';
 import { useSignal, signal } from '@preact/signals';
-import { ent, link, fault, pending, ready, call, openEntity, hassUrl, startOAuth, saveLongLived, forgetLink, getEvents, getForecast, mediaApi, serviceResponse, LS } from './ha.js';
+import { ent, link, fault, pending, ready, call, openEntity, getHistory, hassUrl, startOAuth, saveLongLived, forgetLink, getEvents, getForecast, mediaApi, serviceResponse, LS } from './ha.js';
 import { ROOMS, SHARED, ALL_IDS, MUSIC } from './rooms.js';
 import { sfx, soundOn, toggleSound, SOUND_SLOTS, custom, soundSync, setCustomSound, clearCustomSound, previewSound, startSoundSync, refreshSounds, MAX_SECONDS } from './sfx.js';
 import { WxIcon, ScaleBar, tempColor, humColor } from './wx.jsx';
@@ -2262,6 +2262,102 @@ function useFit() {
   }, []);
   return [ref, z.value];
 }
+
+/* THERMAL page: every humidity sensor as meters (display only) */
+function SHumidityAll() {
+  const S = useRoom().status;
+  return (
+    <section class="panel s-hum s-humall">
+      <SecHead title="HUMIDITY • ALL SENSORS" tone="violet" />
+      <div class="tm-row s-tm" style={{ gridTemplateColumns: `repeat(${S.humidityAll.length}, minmax(0, 1fr))` }}>
+        {S.humidityAll.map(([l, id]) => { const v = num(ent(id).value); return <Meter id={id} label={l} unit="%" value={v} min={0} max={100} fn={humColor} sub="RH" />; })}
+      </div>
+    </section>
+  );
+}
+
+/* THERMOSTAT CHARTS: room temperature against set point over the chosen window, heating periods underneath.
+   History comes from HA's recorder (history_during_period), refreshed every 5 minutes; the live state extends it to now. */
+const thermoHours = signal(24);
+const thermoHist = signal({ at: 0, key: '', data: {}, err: null });
+function useThermoHistory(ids) {
+  const h = thermoHours.value; const key = `${h}|${ids.join(',')}`;
+  useEffect(() => {
+    let dead = false;
+    const load = async () => {
+      try {
+        const end = new Date(); const start = new Date(+end - h * 3600e3);
+        const data = await getHistory(ids, start, end);
+        if (!dead) thermoHist.value = { at: Date.now(), key, data, err: null };
+      } catch (e) { if (!dead) thermoHist.value = { ...thermoHist.peek(), key, err: e?.message ?? 'HISTORY FAILED' }; }
+    };
+    load(); const iv = setInterval(load, 300e3);
+    return () => { dead = true; clearInterval(iv); };
+  }, [key]);
+  return thermoHist.value.key === key ? thermoHist.value : { at: 0, data: {}, err: null };
+}
+function SThermoChart({ id, label, rows, hours }) {
+  const st = ent(id).value; const a = st?.attributes ?? {};
+  const now = Date.now(); const t0 = now - hours * 3600e3;
+  // series: history rows plus the live state at "now"
+  const pts = (rows ?? []).filter((r) => r.s && !UNAVAIL.has(r.s)).map((r) => ({ t: Math.max(r.t, t0), cur: r.a?.current_temperature, set: r.s === 'off' ? null : r.a?.temperature, heat: r.a?.hvac_action === 'heating' }));
+  if (st && !UNAVAIL.has(st.state)) pts.push({ t: now, cur: a.current_temperature, set: st.state === 'off' ? null : a.temperature, heat: a.hvac_action === 'heating' });
+  const vals = pts.flatMap((p) => [p.cur, p.set]).filter((v) => v != null);
+  const lo = vals.length ? Math.floor((Math.min(...vals) - 2) / 5) * 5 : 50;
+  const hi = vals.length ? Math.ceil((Math.max(...vals) + 2) / 5) * 5 : 80;
+  const W = 680, H = 200, L = 34, R = 6, T = 8, B = 24, HB = 10; // plot box, heating band height
+  const x = (t) => L + ((t - t0) / (now - t0)) * (W - L - R);
+  const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B - HB - 4);
+  const step = (key) => { let d = ''; let prev = null; for (const p of pts) { const v = p[key]; if (v == null) { prev = null; continue; } const X = x(p.t).toFixed(1), Y = y(v).toFixed(1); d += prev == null ? `M${X},${Y}` : `H${X}V${Y}`; prev = v; } return d; };
+  const line = (key) => { let d = ''; let prev = null; for (const p of pts) { const v = p[key]; if (v == null) { prev = null; continue; } d += `${prev == null ? 'M' : 'L'}${x(p.t).toFixed(1)},${y(v).toFixed(1)}`; prev = v; } return d; };
+  // heating spans and total heating time
+  const spans = []; let heatMs = 0;
+  for (let i = 0; i < pts.length - 1; i++) if (pts[i].heat) { const a0 = pts[i].t, a1 = pts[i + 1].t; heatMs += a1 - a0; const last = spans[spans.length - 1]; if (last && Math.abs(last[1] - a0) < 1) last[1] = a1; else spans.push([a0, a1]); }
+  const ticks = []; for (let v = lo; v <= hi; v += 5) ticks.push(v);
+  const tstep = hours <= 12 ? 3 : hours <= 24 ? 6 : 24; const tt = [];
+  { const d = new Date(t0); d.setMinutes(0, 0, 0); d.setHours(Math.ceil(d.getHours() / tstep) * tstep); for (let t = +d; t <= now; t += tstep * 3600e3) tt.push(t); }
+  const off = !st || UNAVAIL.has(st.state);
+  const heatingNow = a.hvac_action === 'heating';
+  const gap = a.current_temperature != null && a.temperature != null ? a.current_temperature - a.temperature : null;
+  return (
+    <section class="panel s-tc">
+      <SecHead title={label} tone={off ? 'rust' : heatingNow ? 'rose' : 'tan'} />
+      <div class="s-tc-body">
+        <svg class="s-tc-g" viewBox={`0 0 ${W} ${H}`} onClick={() => openEntity(id)} data-link="" aria-label={`${label} temperature and set point, last ${hours} hours`}>
+          {ticks.map((v) => <g><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} class="s-tc-grid" /><text x={L - 6} y={y(v) + 4} class="s-tc-yl">{v}°</text></g>)}
+          {tt.map((t) => { const d = new Date(t); return <g><line x1={x(t)} x2={x(t)} y1={T} y2={H - B} class="s-tc-vgrid" /><text x={x(t)} y={H - 6} class="s-tc-xl">{hours > 24 ? DAYS[d.getDay()].slice(0, 3) : `${pad(d.getHours())}:00`}</text></g>; })}
+          {spans.map(([s0, s1]) => <rect x={x(s0)} width={Math.max(1.5, x(s1) - x(s0))} y={H - B - HB} height={HB} class="s-tc-heat" />)}
+          <line x1={L} x2={W - R} y1={H - B - HB} y2={H - B - HB} class="s-tc-base" />
+          <path d={step('set')} class="s-tc-set" />
+          <path d={line('cur')} class="s-tc-cur" />
+          {!off && a.current_temperature != null && <circle cx={x(now)} cy={y(a.current_temperature)} r="5" class="s-tc-now" />}
+          {!pts.length && <text x={W / 2} y={H / 2} class="s-tc-empty">{off ? 'NO SIGNAL' : 'LOADING HISTORY'}</text>}
+        </svg>
+        <div class="s-tc-r">
+          <span>NOW<b>{a.current_temperature ?? '--'}°</b></span>
+          <span class="s-tc-sp">SET<b>{st?.state === 'off' ? 'OFF' : `${a.temperature ?? '--'}°`}</b></span>
+          <span data-heat={heatingNow ? '' : undefined}>{UP(st?.state ?? '--')}<b>{UP(a.hvac_action ?? (off ? 'NO SIGNAL' : '--'))}</b></span>
+          <span>{gap == null ? 'OFFSET' : gap >= 0 ? 'ABOVE SET' : 'BELOW SET'}<b>{gap == null ? '--' : `${gap > 0 ? '+' : ''}${Math.round(gap * 10) / 10}°`}</b></span>
+          <span>HEAT {hours} H<b>{(heatMs / 3600e3).toFixed(1)} H</b></span>
+        </div>
+      </div>
+    </section>
+  );
+}
+function SThermoCharts({ p }) {
+  const h = useThermoHistory(p.thermo);
+  return (
+    <div class="s-tcs">
+      <div class="s-tc-bar">
+        <span class="s-tc-key"><i class="k-cur" />ROOM TEMP<i class="k-set" />SET POINT<i class="k-heat" />HEATING</span>
+        {h.err && <span class="fault-line">HISTORY FAULT • {UP(h.err)}</span>}
+        <span class="s-tc-pills">{[12, 24, 72].map((n) => <button class="s-tc-pill" data-sel={thermoHours.value === n ? '' : undefined} onClick={() => (thermoHours.value = n)}>{n} H</button>)}</span>
+      </div>
+      <div class="s-tc-grid4">{p.thermo.map((id, i) => <SThermoChart id={id} label={p.labels[i]} rows={h.data[id]} hours={thermoHours.value} />)}</div>
+    </div>
+  );
+}
+
 const sPage = signal((() => { try { return localStorage.getItem('cabinlcars.status.page') || 'STATUS'; } catch { return 'STATUS'; } })());
 function goStatus(p) { sPage.value = p; try { localStorage.setItem('cabinlcars.status.page', p); } catch {} }
 const LAMP_TONE = { WATER: 'sky', SEPTIC: 'peach', THERMAL: 'tan', SAFETY: 'red', ACCESS: 'violet', NETWORK: 'ice' };
@@ -2269,7 +2365,7 @@ function SDetail({ k }) {
   const S = useRoom().status; const P = S.detail?.[k] ?? [];
   return (
     <div class="s-detail">
-      {P.map((p) => p.meters ? <div class="s-dwide"><SThermal /></div> : (
+      {P.map((p) => p.meters ? <div class="s-dwide s-ttop"><SThermal /><SHumidityAll /></div> : p.thermo ? <div class="s-dwide"><SThermoCharts p={p} /></div> : (
         <section class="panel" style={{ gridColumn: (p.cols ?? 3) >= 4 ? '1 / -1' : undefined }}>
           <SecHead title={p.t} tone={p.tone} />
           <div class="s-tiles" style={{ '--cols': p.cols ?? 3 }}>{p.tiles.map((t) => <STile t={t} />)}</div>
@@ -2387,7 +2483,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v6';
+export const BUILD = 'v7';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

@@ -55,6 +55,7 @@ class CabinLcars extends HTMLElement {
         },
         mediaFetch: (url) => fetch(url),
         device: async (name) => Object.values(this._hass.devices ?? {}).find((d) => d.name_by_user === name || d.name === name) ?? null,
+        historyWs: (msg) => this._hass.connection.sendMessagePromise(msg),
         openEntity: (id) => {
           const dev = this._hass?.entities?.[id]?.device_id;
           if (dev) {

@@ -1077,3 +1077,46 @@ h1, h2 { margin: 0; font-weight: 500; }
 .s-app [data-link] { cursor: pointer; }
 .s-app [data-link]:hover { filter: brightness(1.2); }
 .s-app [data-link]:active { filter: brightness(0.8); }
+/* v7: THERMAL page — freeze meters and all-humidity meters side by side, then four thermostat charts */
+.s-ttop { gap: 24px; }
+.s-ttop > .s-therm { flex: 1.15; }
+.s-ttop > .s-humall { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.s-ttop .s-tm { min-height: 150px; }
+.s-ttop .tm-v { font-size: 28px; }
+.s-tcs { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.s-tc-bar { display: flex; align-items: center; gap: 16px; }
+.s-tc-key { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--bl-on-lilac); flex: 1; }
+.s-tc-key i { display: inline-block; width: 26px; height: 6px; margin-left: 12px; }
+.s-tc-key i:first-child { margin-left: 0; }
+.s-tc-key .k-cur { background: var(--bl-sky); }
+.s-tc-key .k-set { background: var(--bl-sunflower); }
+.s-tc-key .k-heat { background: var(--bl-peach); height: 12px; }
+.s-tc-pills { display: flex; gap: var(--bl-seam); }
+.s-tc-pill { height: 30px; padding: 0 16px; background: var(--bl-lilac); color: var(--bl-on-lilac); font-size: 16px; border-radius: 0; }
+.s-tc-pill:first-child { border-radius: 15px 0 0 15px; }
+.s-tc-pill:last-child { border-radius: 0 15px 15px 0; }
+.s-tc-pill[data-sel] { background: var(--bl-amber); color: #000; }
+.s-tc-grid4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+.s-tc { gap: 6px; }
+.s-tc-body { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 8px; }
+.s-tc-g { width: 100%; height: 200px; display: block; background: #04110e; box-shadow: inset 0 0 0 2px var(--bl-rust); }
+.s-tc-grid { stroke: #173a33; stroke-width: 1; }
+.s-tc-vgrid { stroke: #10302a; stroke-width: 1; stroke-dasharray: 2 4; }
+.s-tc-base { stroke: var(--bl-rust); stroke-width: 1; }
+.s-tc-yl { fill: var(--bl-on-lilac); font-size: 12px; text-anchor: end; font-family: var(--bl-font-display); }
+.s-tc-xl { fill: var(--bl-on-lilac); font-size: 12px; text-anchor: middle; font-family: var(--bl-font-display); }
+.s-tc-heat { fill: var(--bl-peach); }
+.s-tc-set { fill: none; stroke: var(--bl-sunflower); stroke-width: 3; }
+.s-tc-cur { fill: none; stroke: var(--bl-sky); stroke-width: 2.5; stroke-linejoin: round; }
+.s-tc-now { fill: var(--bl-sky); animation: blink var(--bl-dur-blink) steps(1, end) infinite; }
+.s-tc-empty { fill: var(--bl-rust); font-size: 22px; text-anchor: middle; font-family: var(--bl-font-display); }
+.s-tc-r { display: flex; flex-direction: column; gap: var(--bl-seam); }
+.s-tc-r span { flex: 1; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; background: var(--bl-lilac); color: var(--bl-on-lilac); font-size: 13px; }
+.s-tc-r b { font-size: 22px; font-weight: 400; color: var(--bl-tan); }
+.s-tc-r .s-tc-sp b { color: var(--bl-sunflower); }
+.s-tc-r span[data-heat] { background: var(--bl-peach); color: #000; }
+.s-tc-r span[data-heat] b { color: #000; }
+/* heating uses the warm rose slot (Sea Pine's "peach" slot is green) */
+.s-tc-heat { fill: var(--bl-rose); }
+.s-tc-key .k-heat { background: var(--bl-rose); }
+.s-tc-r span[data-heat] { background: var(--bl-rose); }

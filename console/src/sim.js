@@ -406,6 +406,22 @@ export function simulate(seed) {
       }
       throw new Error('NO HANDLER');
     },
+    async history(ids, start, end) {
+      // Placeholder thermostat history for simulation only: 10-minute samples, a setback overnight, heat cycles.
+      const out = {}; const t0 = +start, t1 = +end;
+      for (const id of ids) {
+        const cur0 = seed[id]?.attributes?.current_temperature ?? 66, set0 = seed[id]?.attributes?.temperature ?? 65;
+        const rows = []; let cur = cur0 - 2; let heat = false;
+        for (let t = t0; t <= t1; t += 600e3) {
+          const h = new Date(t).getHours(); const set = h >= 23 || h < 6 ? set0 - 3 : set0;
+          if (cur < set - 0.6) heat = true; if (cur > set + 0.8) heat = false;
+          cur += heat ? 0.45 : -0.18 + Math.sin(t / 3.6e6) * 0.05;
+          rows.push({ t, s: 'heat', a: { current_temperature: Math.round(cur * 10) / 10, temperature: set, hvac_action: heat ? 'heating' : 'idle' } });
+        }
+        out[id] = rows;
+      }
+      return out;
+    },
     async forecast(eid, type) {
       // Placeholder forecast for simulation only; live mode calls weather.get_forecasts.
       const conds = ['partlycloudy', 'cloudy', 'rainy', 'sunny', 'sunny', 'partlycloudy', 'snowy'];

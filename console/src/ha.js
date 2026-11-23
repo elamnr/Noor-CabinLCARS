@@ -60,6 +60,20 @@ export async function getDevice(name) {
   try { return await backend.device(name); } catch { return null; }
 }
 /** Calendar events between two Date objects; resolves to [] when unsupported. */
+/** State history with attributes, normalised to { entity_id: [{ t (ms), s, a }] }. Uses the WebSocket
+ * history/history_during_period command (compressed rows: s = state, a = attributes, lu = last_updated s). */
+export async function getHistory(ids, start, end) {
+  if (!backend) return {};
+  if (backend.history) return backend.history(ids, start, end);
+  const msg = { type: 'history/history_during_period', start_time: start.toISOString(), end_time: end.toISOString(), entity_ids: ids, minimal_response: false, no_attributes: false, significant_changes_only: false };
+  const r = backend.historyWs ? await backend.historyWs(msg) : await backend.send(msg);
+  const out = {};
+  for (const id of ids) {
+    let a = {};
+    out[id] = (r?.[id] ?? []).map((x) => { if (x.a) a = x.a; return { t: (x.lu ?? x.lc ?? 0) * 1000, s: x.s, a }; });
+  }
+  return out;
+}
 export async function getEvents(eid, start, end) {
   if (!backend?.events) return [];
   return backend.events(eid, start.toISOString(), end.toISOString());

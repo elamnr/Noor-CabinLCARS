@@ -335,6 +335,16 @@ const node = (l, id) => ({ l, id, map: NODE, bad: ['dead'] });
 const batt = (l, id) => ({ l, id, unit: '%', lowWarn: 30, lowBad: 15 });
 const flag = (l, id, on, off = 'OK', tone = 'bad') => ({ l, id, map: { on, off }, [tone]: ['on'] });
 const seen = (l, id) => ({ l, id, ago: 'changed', map: DET });
+// THERMAL page humidity row: every humidity sensor, display only (alerts still come from STATUS.humidity)
+STATUS.humidityAll = [
+  ['LOG CABIN', 'sensor.shelly_humidity_and_temp_sensor_log_cabin_humidity'],
+  ['LOG MAIN STAT', 'sensor.log_cabin_main_thermostat_humidity'],
+  ['APOLLO AIR', 'sensor.apollo_air_1_7bc400_sen55_humidity'],
+  ['BUNK MAIN', 'sensor.bunk_main_thermostat_humidity'],
+  ['BUNK BATH', 'sensor.bunk_bath_thermostat_current_humidity'],
+  ['CRAWLSPACE', 'sensor.crawlspace_temp_sensor_humidity'],
+  ['WATER MAIN', 'sensor.water_main_temp_sensor_humidity'],
+];
 STATUS.detail = {
   WATER: [
     { t: 'MAIN SHUTOFF VALVE • LOG CABIN BATH', tone: 'sky', cols: 3, tiles: [
@@ -395,13 +405,8 @@ STATUS.detail = {
   ],
   THERMAL: [
     { meters: true },
-    { t: 'THERMOSTATS', tone: 'tan', cols: 4, tiles: [
-      { l: 'LOG MAIN', id: 'climate.log_cabin_main_thermostat', kind: 'climate' },
-      { l: 'LOG FIREPLACE', id: 'climate.log_cabin_fireplace_thermostat', kind: 'climate' },
-      { l: 'BUNK MAIN', id: 'climate.bunk_main_thermostat', kind: 'climate' },
-      { l: 'BUNK BATH', id: 'climate.bunk_bath_thermostat_thermostat', kind: 'climate' },
-    ] },
-    { t: 'CRAWLSPACE • LOG CABIN', tone: 'tan', cols: 3, tiles: [
+    { thermo: ['climate.log_cabin_main_thermostat', 'climate.log_cabin_fireplace_thermostat', 'climate.bunk_main_thermostat', 'climate.bunk_bath_thermostat_thermostat'], labels: ['LOG CABIN MAIN', 'LOG CABIN FIREPLACE', 'BUNK HOUSE MAIN', 'BUNK HOUSE BATH'] },
+    { t: 'CRAWLSPACE • LOG CABIN', tone: 'tan', cols: 6, tiles: [
       { l: 'AIR TEMP', id: 'sensor.crawlspace_temp_sensor_air_temperature', unit: '°F', lowBad: 40 },
       { l: 'HUMIDITY', id: 'sensor.crawlspace_temp_sensor_humidity', unit: '%' },
       flag('UNDERHEAT', 'binary_sensor.crawlspace_temp_sensor_underheat_detected', 'DETECTED', 'NO'),
@@ -493,7 +498,7 @@ STATUS.cameras = [
   ['BUNK HOUSE PANO', 'camera.bunk_house_pano_fluent', true, [['PERSON', 'binary_sensor.bunk_house_pano_person'], ['VEHICLE', 'binary_sensor.bunk_house_pano_vehicle'], ['ANIMAL', 'binary_sensor.bunk_house_pano_animal'], ['MOTION', 'binary_sensor.bunk_house_pano_motion']]],
 ];
 export function statusIds(S) {
-  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
+  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...(S.humidityAll ?? []).map((x) => x[1]), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
 }
 ROOMS.status = {
   key: 'status', title: 'TINY CABINS', kiosk: 'status',
