@@ -2070,10 +2070,39 @@ const num = (st) => (st && !UNAVAIL.has(st.state) && !Number.isNaN(+st.state) ? 
 /** Tone for one status tile: ok | warn | alert | na */
 function tileTone(t, st) {
   if (!st) return 'na';
+  if (t.ago === 'state' && st.state === 'unknown') return 'ok'; // stateless entity that has never fired
   if (UNAVAIL.has(st.state)) return 'na';
+  if (t.kind === 'climate') return st.state === 'off' ? 'warn' : 'ok';
   if (t.bad?.includes(st.state)) return 'alert';
   if (t.warn?.includes(st.state)) return 'warn';
+  const v = +st.state;
+  if (!Number.isNaN(v)) {
+    if ((t.lowBad != null && v < t.lowBad) || (t.highBad != null && v > t.highBad)) return 'alert';
+    if ((t.lowWarn != null && v < t.lowWarn) || (t.highWarn != null && v > t.highWarn)) return 'warn';
+  }
   return 'ok';
+}
+/** Time since a timestamp, in console words: NOW / 5 MIN AGO / 3 H AGO / 2 D AGO. */
+function ago(ts) {
+  const t = typeof ts === 'number' ? ts * 1000 : Date.parse(ts);
+  if (Number.isNaN(t)) return '--';
+  const m = Math.max(0, Math.round((clock.value - t) / 60000));
+  return m < 1 ? 'NOW' : m < 60 ? `${m} MIN AGO` : m < 2880 ? `${Math.round(m / 60)} H AGO` : `${Math.round(m / 1440)} D AGO`;
+}
+/** Display text for one tile. */
+function tileText(t, st) {
+  if (!st) return 'NOT FOUND';
+  if (t.ago === 'state') return st.state === 'unknown' ? 'NEVER' : UNAVAIL.has(st.state) ? 'NO SIGNAL' : ago(st.state);
+  if (UNAVAIL.has(st.state)) return 'NO SIGNAL';
+  if (t.kind === 'climate') { const a = st.attributes ?? {}; return `${a.current_temperature ?? '--'}° • SET ${a.temperature ?? '--'}°`; }
+  if (t.unit) { const v = +st.state; return Number.isNaN(v) ? UP(st.state) : `${Math.round(v * 10) / 10}${t.unit === '%' || t.unit.startsWith('°') ? '' : ' '}${t.unit}`; }
+  const base = t.raw ? st.state : (t.map?.[st.state] ?? UP(st.state));
+  return base;
+}
+function tileSub(t, st) {
+  if (t.kind === 'climate' && st && !UNAVAIL.has(st.state)) return ` • ${UP(st.attributes?.hvac_action ?? st.state)}`;
+  if (t.ago === 'changed' && st && !UNAVAIL.has(st.state)) return ` • ${ago(st.last_changed)}`;
+  return '';
 }
 /** Reading for a thermal meter: climate entities use current_temperature, sensors their state. */
 function tempOf(id) {
@@ -2086,14 +2115,18 @@ function meterTone(v, o) { return v == null ? 'na' : (o.lo != null && v < o.lo) 
 function useStatusEval(S) {
   const items = [];
   const groups = {};
-  for (const g of S.groups) {
-    let worst = 'ok';
-    for (const t of g.tiles) {
+  // Each subsystem's health covers its overview tiles and its detail-page tiles; an entity counts once.
+  const keys = [...new Set([...S.groups.map((g) => g.key), ...Object.keys(S.detail ?? {})])];
+  for (const key of keys) {
+    let worst = 'ok'; const done = new Set();
+    const tiles = [...(S.groups.find((g) => g.key === key)?.tiles ?? []), ...(S.detail?.[key] ?? []).flatMap((p) => p.tiles ?? [])];
+    for (const t of tiles) {
+      if (done.has(t.id)) continue; done.add(t.id);
       const st = ent(t.id).value; const tone = tileTone(t, st);
-      if (tone === 'alert' || tone === 'warn' || tone === 'na') items.push({ g: g.key, l: t.l, tone, v: !st ? 'NOT FOUND' : UNAVAIL.has(st.state) ? 'NO SIGNAL' : (t.map?.[st.state] ?? UP(st.state)) });
+      if (tone === 'alert' || tone === 'warn' || tone === 'na') items.push({ g: key, l: t.l, tone, v: tileText(t, st) });
       worst = rank(tone) > rank(worst) ? tone : worst;
     }
-    groups[g.key] = worst;
+    groups[key] = worst;
   }
   let th = 'ok';
   for (const [l, id, o] of S.thermal) {
@@ -2106,7 +2139,7 @@ function useStatusEval(S) {
     if (tone !== 'ok') items.push({ g: 'THERMAL', l: `HUMIDITY • ${l}`, tone, v: v == null ? 'NO SIGNAL' : `${Math.round(v)}%` });
     th = rank(tone) > rank(th) ? tone : th;
   }
-  groups.THERMAL = th;
+  groups.THERMAL = rank(th) > rank(groups.THERMAL ?? 'ok') ? th : (groups.THERMAL ?? 'ok');
   items.sort((a, b) => rank(b.tone) - rank(a.tone));
   return { items, groups, alerts: items.filter((x) => x.tone === 'alert').length, warns: items.filter((x) => x.tone !== 'alert').length };
 }
@@ -2114,8 +2147,7 @@ function rank(t) { return { ok: 0, na: 1, warn: 2, alert: 3 }[t] ?? 0; }
 
 function STile({ t }) {
   const st = ent(t.id).value; const tone = tileTone(t, st);
-  const v = !st ? 'NOT FOUND' : UNAVAIL.has(st.state) ? 'NO SIGNAL' : t.raw ? st.state : (t.map?.[st.state] ?? UP(st.state));
-  return <div class="s-tile" data-tone={tone}><span>{t.l}</span><b>{v}</b></div>;
+  return <div class="s-tile" data-tone={tone}><span>{t.l}{tileSub(t, st)}</span><b>{tileText(t, st)}</b></div>;
 }
 function SGroup({ g, cols = 2 }) {
   return (
@@ -2230,12 +2262,30 @@ function useFit() {
   }, []);
   return [ref, z.value];
 }
+const sPage = signal((() => { try { return localStorage.getItem('cabinlcars.status.page') || 'STATUS'; } catch { return 'STATUS'; } })());
+function goStatus(p) { sPage.value = p; try { localStorage.setItem('cabinlcars.status.page', p); } catch {} }
+const LAMP_TONE = { WATER: 'sky', SEPTIC: 'peach', THERMAL: 'tan', SAFETY: 'red', ACCESS: 'violet', NETWORK: 'ice' };
+function SDetail({ k }) {
+  const S = useRoom().status; const P = S.detail?.[k] ?? [];
+  return (
+    <div class="s-detail">
+      {P.map((p) => p.meters ? <div class="s-dwide"><SThermal /></div> : (
+        <section class="panel" style={{ gridColumn: (p.cols ?? 3) >= 4 ? '1 / -1' : undefined }}>
+          <SecHead title={p.t} tone={p.tone} />
+          <div class="s-tiles" style={{ '--cols': p.cols ?? 3 }}>{p.tiles.map((t) => <STile t={t} />)}</div>
+        </section>
+      ))}
+    </div>
+  );
+}
 function StatusFrame() {
   const R = useRoom(); const S = R.status;
   const [fitRef, zoom] = useFit();
   const E = useStatusEval(S);
   const g = (k) => S.groups.find((x) => x.key === k);
   const lamps = ['WATER', 'SEPTIC', 'THERMAL', 'SAFETY', 'ACCESS', 'NETWORK'];
+  const pg = lamps.includes(sPage.value) ? sPage.value : 'STATUS';
+  const sub = E.items.filter((x) => x.g === pg);
   const head = E.alerts ? `${E.alerts} ALERT${E.alerts > 1 ? 'S' : ''}` : E.warns ? `${E.warns} CAUTION` : 'NOMINAL';
   return (
     <div class="app k-app s-app">
@@ -2245,22 +2295,34 @@ function StatusFrame() {
         <span class="hd-bar" />
         <span class="hd-seg" style={{ background: E.alerts ? 'var(--bl-red)' : E.warns ? 'var(--bl-sunflower)' : 'var(--bl-tan)', width: '72px' }} />
         <span class="hd-seg hd-code">{head} • {BUILD}</span>
-        <h1 class="hd-t">{R.title} • MASTER SYSTEMS</h1>
+        <h1 class="hd-t">{R.title} • {pg === 'STATUS' ? 'MASTER SYSTEMS' : pg}</h1>
         <span class="hd-cap" />
       </header>
       <nav class="side" aria-label="System health">
+        <button class="nav s-home" data-cur={pg === 'STATUS' ? '' : undefined} style={{ '--nav': 'var(--bl-amber)' }} onClick={() => goStatus('STATUS')}>
+          <span class="nav-c">{head}</span><span class="nav-l">STATUS</span>
+        </button>
         {lamps.map((k) => {
           const tone = E.groups[k] ?? 'na';
           return (
-            <div class="nav k-mode s-lamp" data-sel="" data-alert={tone === 'alert' ? '' : undefined} style={{ '--nav': `var(--bl-${{ ok: 'tan', warn: 'sunflower', alert: 'red', na: 'rust' }[tone]})` }}>
+            <button class="nav k-mode s-lamp" data-sel="" data-cur={pg === k ? '' : undefined} data-alert={tone === 'alert' ? '' : undefined} style={{ '--nav': `var(--bl-${{ ok: 'tan', warn: 'sunflower', alert: 'red', na: 'rust' }[tone]})` }} onClick={() => goStatus(k)}>
               <span class="nav-c">{{ ok: 'NOMINAL', warn: 'CAUTION', alert: 'ALERT', na: 'NO SIGNAL' }[tone]}</span><span class="nav-l">{k}</span>
-            </div>
+            </button>
           );
         })}
         <span class="side-fill" />
         {link.value.mode !== 'hass' && <button class="nav" style={{ '--nav': 'var(--bl-amber)' }} onClick={() => (linkOpen.value = true)}><span class="nav-c">07-00</span><span class="nav-l">LINK</span></button>}
       </nav>
       <main class="main s-main" ref={fitRef}>
+        {pg !== 'STATUS' ? (
+          <div class="page s-dpage" style={{ width: `${S_W}px`, height: `${S_H}px`, zoom }}>
+            <section class="panel s-dalerts">
+              <SecHead title={sub.length ? `${pg} • ${sub.length} ${sub.length > 1 ? 'ITEMS NEED' : 'ITEM NEEDS'} ATTENTION` : `${pg} • ALL NOMINAL`} tone={sub.some((x) => x.tone === 'alert') ? 'red' : sub.length ? 'sunflower' : LAMP_TONE[pg]} />
+              {sub.length > 0 && <div class="s-alist s-alist-h">{sub.map((x) => <div class="s-al" data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}</div>}
+            </section>
+            <SDetail k={pg} />
+          </div>
+        ) : (
         <div class="page k-page s-page" style={{ width: `${S_W}px`, height: `${S_H}px`, zoom }}>
           <div class="k-colw">
             <section class="panel"><SecHead title="CHRONOMETER" tone="peach" /><KClock compact /></section>
@@ -2281,6 +2343,7 @@ function StatusFrame() {
             <SGroup g={g('NETWORK')} cols={3} />
           </div>
         </div>
+        )}
       </main>
       <div class="elbow-b" />
       <footer class="ft">
@@ -2298,7 +2361,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v2';
+export const BUILD = 'v3';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

@@ -327,8 +327,167 @@ export const STATUS = {
     ['BUNK HOUSE', 'calendar.bunk_house_calendar', 'sensor.hours_since_bunk_house_activity', 'binary_sensor.bunk_presence_sensor_presence_sensor_1'],
   ],
 };
+// DETAIL PAGES: one per side-lamp subsystem. Each is a list of panels of tiles. Extra tile keys:
+//   unit (numeric reading + unit), lowWarn/lowBad/highWarn/highBad (numeric thresholds),
+//   ago: 'state' (state is a timestamp) | 'changed' (time since last change), kind: 'climate'.
+const NODE = { alive: 'ALIVE', asleep: 'ASLEEP', dead: 'DEAD', awake: 'AWAKE' };
+const node = (l, id) => ({ l, id, map: NODE, bad: ['dead'] });
+const batt = (l, id) => ({ l, id, unit: '%', lowWarn: 30, lowBad: 15 });
+const flag = (l, id, on, off = 'OK', tone = 'bad') => ({ l, id, map: { on, off }, [tone]: ['on'] });
+const seen = (l, id) => ({ l, id, ago: 'changed', map: DET });
+STATUS.detail = {
+  WATER: [
+    { t: 'MAIN SHUTOFF VALVE • LOG CABIN BATH', tone: 'sky', cols: 3, tiles: [
+      { l: 'VALVE (SWITCH)', id: 'switch.log_cabin_emergency_water_shutoff', map: { on: 'OPEN', off: 'CLOSED' }, bad: ['off'] },
+      flag('VALVE ON / OPEN SENSOR', 'binary_sensor.log_cabin_emergency_water_shutoff_on_open', 'ON', 'OFF', 'none'),
+      flag('VALVE JAMMED', 'binary_sensor.log_cabin_emergency_water_shutoff_valve_jammed', 'JAMMED', 'NO'),
+      flag('AC MAINS', 'binary_sensor.log_cabin_emergency_water_shutoff_ac_mains_disconnected', 'DISCONNECTED', 'CONNECTED'),
+      flag('BACKUP BATTERY', 'binary_sensor.log_cabin_emergency_water_shutoff_back_up_battery_disconnected', 'DISCONNECTED', 'CONNECTED', 'warn'),
+      flag('BACKUP BATTERY LOW', 'binary_sensor.log_cabin_emergency_water_shutoff_back_up_battery_is_low', 'LOW', 'OK', 'warn'),
+      flag('VALVE OVERHEAT', 'binary_sensor.log_cabin_emergency_water_shutoff_overheat_detected', 'DETECTED', 'NO'),
+      flag('VALVE UNDERHEAT', 'binary_sensor.log_cabin_emergency_water_shutoff_underheat_detected', 'DETECTED', 'NO'),
+      { l: 'AIR TEMP AT VALVE', id: 'sensor.log_cabin_emergency_water_shutoff_air_temperature', unit: '°F', lowBad: 40 },
+      node('VALVE NODE', 'sensor.log_cabin_emergency_water_shutoff_node_status'),
+    ] },
+    { t: 'LEAK DETECTION', tone: 'sky', cols: 3, tiles: [
+      { l: 'LEAK • LOG BATH', id: 'binary_sensor.water_leak_sensor_log_cabin_bathroom_water_leak_detected', map: DET, bad: ['on'] },
+      { l: 'LEAK • LOG KITCHEN', id: 'binary_sensor.water_leak_sensor_log_cabin_kitchen_water_leak_detected', map: DET, bad: ['on'] },
+      { l: 'LEAK • AT VALVE', id: 'binary_sensor.log_cabin_emergency_water_shutoff_water_leak_detected', map: DET, bad: ['on'] },
+      batt('BATH SENSOR BATTERY', 'sensor.water_leak_sensor_log_cabin_bathroom_battery_level'),
+      batt('KITCHEN SENSOR BATTERY', 'sensor.water_leak_sensor_log_cabin_kitchen_battery_level'),
+      node('BATH SENSOR NODE', 'sensor.water_leak_sensor_log_cabin_bathroom_node_status'),
+      node('KITCHEN SENSOR NODE', 'sensor.water_leak_sensor_log_cabin_kitchen_node_status'),
+    ] },
+    { t: 'WATER MAIN • OOD HOUSE', tone: 'sky', cols: 3, tiles: [
+      { l: 'AIR TEMP', id: 'sensor.water_main_temp_sensor_air_temperature', unit: '°F', lowBad: 35 },
+      { l: 'HUMIDITY', id: 'sensor.water_main_temp_sensor_humidity', unit: '%' },
+      { l: 'MOISTURE', id: 'binary_sensor.water_main_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
+      flag('UNDERHEAT', 'binary_sensor.water_main_temp_sensor_underheat_detected', 'DETECTED', 'NO'),
+      flag('OVERHEAT', 'binary_sensor.water_main_temp_sensor_overheat_detected', 'DETECTED', 'NO'),
+      { l: 'HEAT TAPE', id: 'switch.outdoor_plug_1', map: { on: 'ON', off: 'OFF' }, warn: ['off'] },
+      node('HEAT TAPE OUTLET NODE', 'sensor.outdoor_plug_1_node_status'),
+      batt('TEMP SENSOR BATTERY', 'sensor.water_main_temp_sensor_battery_level'),
+      node('TEMP SENSOR NODE', 'sensor.water_main_temp_sensor_node_status'),
+    ] },
+  ],
+  SEPTIC: [
+    { t: 'SEPTIC MONITOR', tone: 'peach', cols: 3, tiles: [
+      { l: 'MONITOR NODE', id: 'sensor.septic_monitor_node_status', map: NODE, bad: ['dead'] },
+      { l: 'PUMP RUNS TODAY', id: 'counter.septic_daily_run_counter', raw: true },
+      { l: 'LAST PING', id: 'button.septic_monitor_ping', ago: 'state' },
+      { l: 'CHANNEL 1', id: 'switch.septic_monitor', map: { on: 'ON', off: 'OFF' } },
+      { l: 'CHANNEL 3', id: 'switch.septic_monitor_3', map: { on: 'ON', off: 'OFF' } },
+      { l: 'CHANNEL 4', id: 'switch.septic_monitor_4', map: { on: 'ON', off: 'OFF' } },
+      { l: 'CHANNEL 5', id: 'switch.septic_monitor_5', map: { on: 'ON', off: 'OFF' } },
+      { l: 'FIRMWARE', id: 'update.septic_monitor_firmware', map: { on: 'UPDATE AVAILABLE', off: 'CURRENT' }, warn: ['on'] },
+    ] },
+    { t: 'SCENE EVENTS • LAST FIRED', tone: 'peach', cols: 4, tiles: [
+      { l: 'SCENE 001', id: 'event.septic_monitor_scene_001', ago: 'state' },
+      { l: 'SCENE 002', id: 'event.septic_monitor_scene_002', ago: 'state' },
+      { l: 'SCENE 003', id: 'event.septic_monitor_scene_003', ago: 'state' },
+      { l: 'SCENE 004', id: 'event.septic_monitor_scene_004', ago: 'state' },
+    ] },
+    { t: 'SEPTIC AUTOMATIONS', tone: 'peach', cols: 3, tiles: [
+      { l: 'RUN COUNTER', id: 'automation.septic_pump_run_counter', map: { on: 'ENABLED', off: 'DISABLED' }, warn: ['off'] },
+      { l: 'DAILY RESET', id: 'automation.septic_pump_run_reset', map: { on: 'ENABLED', off: 'DISABLED' }, warn: ['off'] },
+      { l: 'POWER OFFLINE ALERT', id: 'automation.septic_system_power_offline_alert', map: { on: 'ENABLED', off: 'DISABLED' }, warn: ['off'] },
+    ] },
+  ],
+  THERMAL: [
+    { meters: true },
+    { t: 'THERMOSTATS', tone: 'tan', cols: 4, tiles: [
+      { l: 'LOG MAIN', id: 'climate.log_cabin_main_thermostat', kind: 'climate' },
+      { l: 'LOG FIREPLACE', id: 'climate.log_cabin_fireplace_thermostat', kind: 'climate' },
+      { l: 'BUNK MAIN', id: 'climate.bunk_main_thermostat', kind: 'climate' },
+      { l: 'BUNK BATH', id: 'climate.bunk_bath_thermostat_thermostat', kind: 'climate' },
+    ] },
+    { t: 'CRAWLSPACE • LOG CABIN', tone: 'tan', cols: 3, tiles: [
+      { l: 'AIR TEMP', id: 'sensor.crawlspace_temp_sensor_air_temperature', unit: '°F', lowBad: 40 },
+      { l: 'HUMIDITY', id: 'sensor.crawlspace_temp_sensor_humidity', unit: '%' },
+      flag('UNDERHEAT', 'binary_sensor.crawlspace_temp_sensor_underheat_detected', 'DETECTED', 'NO'),
+      batt('SENSOR BATTERY', 'sensor.crawlspace_temp_sensor_battery_level'),
+      node('SENSOR NODE', 'sensor.crawlspace_temp_sensor_node_status'),
+      batt('FIREPLACE STAT BATTERY', 'sensor.log_cabin_fireplace_thermostat_battery_level'),
+    ] },
+  ],
+  SAFETY: [
+    { t: 'SMOKE / CO • LOG CABIN', tone: 'red', cols: 3, tiles: [
+      { l: 'SMOKE', id: 'binary_sensor.log_cabin_smoke_co_sensor_smoke_detected', map: DET, bad: ['on'] },
+      { l: 'CARBON MONOXIDE', id: 'binary_sensor.log_cabin_smoke_co_sensor_carbon_monoxide_detected', map: DET, bad: ['on'] },
+      flag('TAMPER', 'binary_sensor.log_cabin_smoke_co_sensor_tampering_product_cover_removed', 'COVER REMOVED', 'OK', 'warn'),
+      flag('DEVICE FAULT', 'binary_sensor.log_cabin_smoke_co_sensor_system_software_failure_with_failure_code', 'FAULT', 'OK', 'warn'),
+      batt('BATTERY', 'sensor.log_cabin_smoke_co_sensor_battery_level'),
+      node('NODE', 'sensor.log_cabin_smoke_co_sensor_node_status'),
+    ] },
+    { t: 'MOISTURE ALARMS', tone: 'red', cols: 2, tiles: [
+      { l: 'CRAWLSPACE', id: 'binary_sensor.crawlspace_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
+      { l: 'WATER MAIN', id: 'binary_sensor.water_main_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
+    ] },
+    { t: 'SECURITY SYSTEM', tone: 'red', cols: 2, tiles: [
+      { l: 'WYZE HOME MONITORING', id: 'alarm_control_panel.wyze_home_monitoring_system', map: { disarmed: 'DISARMED', armed_home: 'ARMED HOME', armed_away: 'ARMED AWAY', triggered: 'TRIGGERED' }, bad: ['triggered'] },
+    ] },
+  ],
+  ACCESS: [
+    { t: 'BUNK HOUSE LOCK', tone: 'violet', cols: 3, tiles: [
+      { l: 'LOCK', id: 'lock.bunk_house_yale_assure_lock_bunkhouse', map: { locked: 'LOCKED', unlocked: 'UNLOCKED', jammed: 'JAMMED' }, warn: ['unlocked'], bad: ['jammed'] },
+      flag('JAMMED', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_lock_jammed', 'JAMMED', 'NO'),
+      flag('KEYPAD', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_keypad_temporary_disabled', 'DISABLED', 'ACTIVE', 'warn'),
+      batt('BATTERY', 'sensor.bunk_house_yale_assure_lock_bunkhouse_battery_level'),
+      flag('REPLACE BATTERY', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_replace_battery_now', 'NOW', 'NO'),
+      node('NODE', 'sensor.bunk_house_yale_assure_lock_bunkhouse_node_status'),
+    ] },
+    { t: 'BUNK HOUSE OPENINGS', tone: 'violet', cols: 3, tiles: [
+      { l: 'FRONT DOOR', id: 'binary_sensor.bunk_house_front_door_sensor', map: OPEN, warn: ['on'], ago: 'changed' },
+      batt('DOOR SENSOR BATTERY', 'sensor.bunk_house_front_door_battery_level'),
+      flag('DOOR SENSOR TAMPER', 'binary_sensor.bunk_house_front_door_tampering_product_cover_removed', 'COVER REMOVED', 'OK', 'warn'),
+      { l: 'COUCH WINDOW', id: 'binary_sensor.bunkhouse_couch_window_sensor_intrusion', map: OPEN, warn: ['on'], ago: 'changed' },
+      batt('WINDOW SENSOR BATTERY', 'sensor.bunkhouse_couch_window_sensor_battery_level'),
+      flag('WINDOW SENSOR TAMPER', 'binary_sensor.bunkhouse_couch_window_sensor_tampering_product_cover_removed', 'COVER REMOVED', 'OK', 'warn'),
+    ] },
+    { t: 'PERIMETER • LAST DETECTION', tone: 'violet', cols: 4, tiles: [
+      seen('ENTRY • PERSON', 'binary_sensor.log_cabin_entry_person'),
+      seen('ENTRY • VEHICLE', 'binary_sensor.log_cabin_entry_vehicle'),
+      seen('ENTRY • ANIMAL', 'binary_sensor.log_cabin_entry_animal'),
+      seen('ENTRY • MOTION', 'binary_sensor.log_cabin_entry_motion'),
+      seen('DOORBELL • VISITOR', 'binary_sensor.log_cabin_front_doorbell_visitor'),
+      seen('DOORBELL • PERSON', 'binary_sensor.log_cabin_front_doorbell_person'),
+      seen('DOORBELL • PACKAGE', 'binary_sensor.log_cabin_front_doorbell_package'),
+      seen('DOORBELL • VEHICLE', 'binary_sensor.log_cabin_front_doorbell_vehicle'),
+    ] },
+  ],
+  NETWORK: [
+    { t: 'CONNECTIVITY', tone: 'ice', cols: 3, tiles: [
+      { l: 'INTERNET (WAN)', id: 'binary_sensor.broadcom_adsl_router_wan_status', map: LINK, bad: ['off'] },
+      { l: 'REMOTE ACCESS (NABU CASA)', id: 'binary_sensor.remote_ui', map: LINK, bad: ['off'] },
+      { l: 'ZIGBEE COORD • INTERNET', id: 'binary_sensor.slzb_mrw10_internet', map: LINK, bad: ['off'] },
+      { l: 'ZIGBEE COORD • ETHERNET', id: 'binary_sensor.slzb_mrw10_ethernet', map: LINK, bad: ['off'] },
+      { l: 'APOLLO AIR SENSOR', id: 'binary_sensor.apollo_air_1_7bc400_online', map: LINK, bad: ['off'] },
+      batt('CABIN CONTROL IPAD', 'sensor.cabin_control_ipad_battery_level'),
+    ] },
+    { t: 'Z-WAVE NODES', tone: 'ice', cols: 4, tiles: [
+      node('WATER SHUTOFF', 'sensor.log_cabin_emergency_water_shutoff_node_status'),
+      node('SEPTIC MONITOR', 'sensor.septic_monitor_node_status'),
+      node('SMOKE / CO', 'sensor.log_cabin_smoke_co_sensor_node_status'),
+      node('BUNK LOCK', 'sensor.bunk_house_yale_assure_lock_bunkhouse_node_status'),
+      node('LOG CABIN LOCK', 'sensor.yale_assure_lock_log_cabin_node_status'),
+      node('BUNK DOOR SENSOR', 'sensor.bunk_house_front_door_node_status'),
+      node('COUCH WINDOW', 'sensor.bunkhouse_couch_window_sensor_node_status'),
+      node('CRAWLSPACE SENSOR', 'sensor.crawlspace_temp_sensor_node_status'),
+      node('WATER MAIN SENSOR', 'sensor.water_main_temp_sensor_node_status'),
+      node('LEAK • BATH', 'sensor.water_leak_sensor_log_cabin_bathroom_node_status'),
+      node('LEAK • KITCHEN', 'sensor.water_leak_sensor_log_cabin_kitchen_node_status'),
+      node('FIREPLACE STAT', 'sensor.log_cabin_fireplace_thermostat_node_status'),
+      node('LOG SCENE CTRL', 'sensor.log_cabin_scene_controler_node_status'),
+      node('BUNK SCENE CTRL', 'sensor.bunk_house_scene_controller_node_status'),
+      node('HEAT TAPE OUTLET', 'sensor.outdoor_plug_1_node_status'),
+      node('LOG OUTDOOR OUTLET', 'sensor.log_cabin_outdoor_outlet_log_cabin_node_status'),
+      node('BUNK OUTDOOR OUTLET', 'sensor.bunk_house_outdoor_outlet_bunkhouse_node_status'),
+      node('ZOOZ OUTLET 2', 'sensor.zooz_outdoor_outlets_node_status'),
+    ] },
+  ],
+};
 export function statusIds(S) {
-  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
+  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
 }
 ROOMS.status = {
   key: 'status', title: 'TINY CABINS', kiosk: 'status',
