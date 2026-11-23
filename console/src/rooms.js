@@ -295,10 +295,11 @@ export const STATUS = {
       { l: 'CRAWLSPACE MOISTURE', id: 'binary_sensor.crawlspace_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
     ] },
     { key: 'ACCESS', tone: 'violet', tiles: [
+      { l: 'LOG CABIN LOCK', id: 'lock.yale_assure_lock_log_cabin', map: { locked: 'LOCKED', unlocked: 'UNLOCKED', jammed: 'JAMMED' }, warn: ['unlocked'], bad: ['jammed'] },
       { l: 'BUNK HOUSE LOCK', id: 'lock.bunk_house_yale_assure_lock_bunkhouse', map: { locked: 'LOCKED', unlocked: 'UNLOCKED', jammed: 'JAMMED' }, warn: ['unlocked'], bad: ['jammed'] },
       { l: 'BUNK HOUSE DOOR', id: 'binary_sensor.bunk_house_front_door_sensor', map: OPEN, warn: ['on'] },
       { l: 'BUNK COUCH WINDOW', id: 'binary_sensor.bunkhouse_couch_window_sensor_intrusion', map: OPEN, warn: ['on'] }, // ASSUMPTION: intrusion on = open
-      { l: 'LOCK BATTERY', id: 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_replace_battery_soon', map: { on: 'REPLACE SOON', off: 'OK' }, warn: ['on'] },
+      { l: 'BUNK LOCK BATTERY', id: 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_replace_battery_soon', map: { on: 'REPLACE SOON', off: 'OK' }, warn: ['on'] },
     ] },
     { key: 'NETWORK', tone: 'ice', tiles: [
       { l: 'INTERNET (WAN)', id: 'binary_sensor.broadcom_adsl_router_wan_status', map: LINK, bad: ['off'] },
@@ -433,6 +434,14 @@ STATUS.detail = {
     ] },
   ],
   ACCESS: [
+    { t: 'LOG CABIN LOCK', tone: 'violet', cols: 3, tiles: [
+      { l: 'LOCK', id: 'lock.yale_assure_lock_log_cabin', map: { locked: 'LOCKED', unlocked: 'UNLOCKED', jammed: 'JAMMED' }, warn: ['unlocked'], bad: ['jammed'] },
+      flag('JAMMED', 'binary_sensor.yale_assure_lock_log_cabin_lock_jammed', 'JAMMED', 'NO'),
+      flag('KEYPAD', 'binary_sensor.yale_assure_lock_log_cabin_keypad_temporary_disabled', 'DISABLED', 'ACTIVE', 'warn'),
+      batt('BATTERY', 'sensor.yale_assure_lock_log_cabin_battery_level'),
+      flag('REPLACE BATTERY', 'binary_sensor.yale_assure_lock_log_cabin_replace_battery_now', 'NOW', 'NO'),
+      node('NODE', 'sensor.yale_assure_lock_log_cabin_node_status'),
+    ] },
     { t: 'BUNK HOUSE LOCK', tone: 'violet', cols: 3, tiles: [
       { l: 'LOCK', id: 'lock.bunk_house_yale_assure_lock_bunkhouse', map: { locked: 'LOCKED', unlocked: 'UNLOCKED', jammed: 'JAMMED' }, warn: ['unlocked'], bad: ['jammed'] },
       flag('JAMMED', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_lock_jammed', 'JAMMED', 'NO'),
@@ -493,8 +502,12 @@ STATUS.webcams = [
 ];
 // ACCESS page layout: entry hardware for the Bunk House (the tiles in STATUS.detail.ACCESS still drive alerts)
 STATUS.access = {
-  lock: { l: 'BUNK HOUSE LOCK', id: 'lock.bunk_house_yale_assure_lock_bunkhouse', battery: 'sensor.bunk_house_yale_assure_lock_bunkhouse_battery_level',
-    chips: [['JAMMED', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_lock_jammed', { on: 'JAMMED', off: 'NO' }, 'bad'], ['KEYPAD', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_keypad_temporary_disabled', { on: 'DISABLED', off: 'ACTIVE' }, 'warn'], ['REPLACE BATTERY', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_replace_battery_now', { on: 'NOW', off: 'NO' }, 'bad'], ['Z-WAVE NODE', 'sensor.bunk_house_yale_assure_lock_bunkhouse_node_status', { alive: 'ALIVE', asleep: 'ASLEEP', dead: 'DEAD' }, 'dead']] },
+  locks: [
+    { l: 'LOG CABIN LOCK', id: 'lock.yale_assure_lock_log_cabin', battery: 'sensor.yale_assure_lock_log_cabin_battery_level',
+      chips: [['JAMMED', 'binary_sensor.yale_assure_lock_log_cabin_lock_jammed', { on: 'JAMMED', off: 'NO' }, 'bad'], ['KEYPAD', 'binary_sensor.yale_assure_lock_log_cabin_keypad_temporary_disabled', { on: 'DISABLED', off: 'ACTIVE' }, 'warn'], ['REPLACE BATT', 'binary_sensor.yale_assure_lock_log_cabin_replace_battery_now', { on: 'NOW', off: 'NO' }, 'bad'], ['NODE', 'sensor.yale_assure_lock_log_cabin_node_status', { alive: 'ALIVE', asleep: 'ASLEEP', dead: 'DEAD' }, 'dead']] },
+    { l: 'BUNK HOUSE LOCK', id: 'lock.bunk_house_yale_assure_lock_bunkhouse', battery: 'sensor.bunk_house_yale_assure_lock_bunkhouse_battery_level',
+      chips: [['JAMMED', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_lock_jammed', { on: 'JAMMED', off: 'NO' }, 'bad'], ['KEYPAD', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_keypad_temporary_disabled', { on: 'DISABLED', off: 'ACTIVE' }, 'warn'], ['REPLACE BATT', 'binary_sensor.bunk_house_yale_assure_lock_bunkhouse_replace_battery_now', { on: 'NOW', off: 'NO' }, 'bad'], ['NODE', 'sensor.bunk_house_yale_assure_lock_bunkhouse_node_status', { alive: 'ALIVE', asleep: 'ASLEEP', dead: 'DEAD' }, 'dead']] },
+  ],
   openings: [
     { l: 'BUNK HOUSE FRONT DOOR', id: 'binary_sensor.bunk_house_front_door_sensor', battery: 'sensor.bunk_house_front_door_battery_level', tamper: 'binary_sensor.bunk_house_front_door_tampering_product_cover_removed' },
     { l: 'BUNK COUCH WINDOW', id: 'binary_sensor.bunkhouse_couch_window_sensor_intrusion', battery: 'sensor.bunkhouse_couch_window_sensor_battery_level', tamper: 'binary_sensor.bunkhouse_couch_window_sensor_tampering_product_cover_removed' },

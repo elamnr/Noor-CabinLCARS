@@ -1199,3 +1199,10 @@ h1, h2 { margin: 0; font-weight: 500; }
 .s-act[data-on] { border-left-color: var(--bl-red); }
 .s-act[data-on] i { color: var(--bl-red); animation: blink var(--bl-dur-blink) steps(1, end) infinite; }
 .s-act-note { font-size: 12px; color: var(--bl-rust); padding-top: 2px; }
+/* v13: two lock cards stacked */
+.s-lockc { display: flex; flex-direction: column; gap: var(--bl-seam); }
+.s-lockc + .s-lockc { margin-top: 10px; }
+.s-big-md .s-big-v { font-size: 50px; }
+.s-big-md { padding: 8px 18px 10px; }
+.s-lockc .s-chip { min-height: 38px; }
+.s-lockc .s-chip b { font-size: 19px; }

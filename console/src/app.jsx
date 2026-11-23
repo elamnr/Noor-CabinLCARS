@@ -2381,8 +2381,6 @@ function Chip({ l, id, map, bad }) {
 }
 function SAccess() {
   const S = useRoom().status; const A = S.access;
-  const lk = ent(A.lock.id).value; const ls = lk?.state;
-  const lTone = !lk || UNAVAIL.has(ls) ? 'na' : ls === 'jammed' ? 'alert' : ls === 'unlocked' ? 'warn' : 'ok';
   // perimeter matrix
   const types = ['PERSON', 'VISITOR', 'VEHICLE', 'ANIMAL', 'PACKAGE', 'MOTION'];
   const shortCam = (l) => l.replace('LOG CABIN ', '').replace('BUNK HOUSE ', 'BUNK ').replace('FRONT ', '');
@@ -2393,13 +2391,21 @@ function SAccess() {
     <div class="s-acc">
       <div class="s-acc-l">
         <section class="panel">
-          <SecHead title="BUNK HOUSE ENTRY" tone="violet" />
-          <div class="s-big" data-tone={lTone} data-link="" onClick={() => openEntity(A.lock.id)}>
-            <span class="s-big-l">{A.lock.l}</span>
-            <b class="s-big-v">{!lk ? 'NOT FOUND' : UNAVAIL.has(ls) ? 'NO SIGNAL' : UP(ls)}</b>
-            <span class="s-big-s">{lk ? since(lk) : ''}</span>
-          </div>
-          <div class="s-chips"><Batt id={A.lock.battery} />{A.lock.chips.map(([l, id, map, bad]) => <Chip l={l} id={id} map={map} bad={bad} />)}</div>
+          <SecHead title="LOCKS" tone="violet" />
+          {A.locks.map((L) => {
+            const lk = ent(L.id).value; const ls = lk?.state;
+            const lTone = !lk || UNAVAIL.has(ls) ? 'na' : ls === 'jammed' ? 'alert' : ls === 'unlocked' ? 'warn' : 'ok';
+            return (
+              <div class="s-lockc">
+                <div class="s-big s-big-md" data-tone={lTone} data-link="" onClick={() => openEntity(L.id)}>
+                  <span class="s-big-l">{L.l}</span>
+                  <b class="s-big-v">{!lk ? 'NOT FOUND' : UNAVAIL.has(ls) ? 'NO SIGNAL' : UP(ls)}</b>
+                  <span class="s-big-s">{lk ? since(lk) : ''}</span>
+                </div>
+                <div class="s-chips"><Batt id={L.battery} />{L.chips.map(([l, id, map, bad]) => <Chip l={l} id={id} map={map} bad={bad} />)}</div>
+              </div>
+            );
+          })}
         </section>
         <div class="s-acc-op">
           {A.openings.map((o) => {
@@ -2659,7 +2665,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v12';
+export const BUILD = 'v13';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

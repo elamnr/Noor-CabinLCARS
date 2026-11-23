@@ -567,3 +567,9 @@ Object.assign(SEED, {
   'binary_sensor.log_cabin_front_doorbell_motion': C('off'),
   'binary_sensor.bunk_house_pano_person': C('on'), 'binary_sensor.bunk_house_pano_vehicle': C('off'), 'binary_sensor.bunk_house_pano_animal': C('off'), 'binary_sensor.bunk_house_pano_motion': C('on'),
 });
+// Log Cabin lock after secure re-inclusion (2026-11-23 15:55 CST)
+Object.assign(SEED, {
+  'lock.yale_assure_lock_log_cabin': C('unlocked'), 'sensor.yale_assure_lock_log_cabin_battery_level': C('34.0'),
+  'binary_sensor.yale_assure_lock_log_cabin_lock_jammed': C('off'), 'binary_sensor.yale_assure_lock_log_cabin_keypad_temporary_disabled': C('off'),
+  'binary_sensor.yale_assure_lock_log_cabin_replace_battery_now': C('off'),
+});
