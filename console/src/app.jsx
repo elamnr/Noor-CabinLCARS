@@ -1,7 +1,7 @@
 import { createContext } from 'preact';
 import { useEffect, useRef, useContext } from 'preact/hooks';
 import { useSignal, signal } from '@preact/signals';
-import { ent, link, fault, pending, ready, call, hassUrl, startOAuth, saveLongLived, forgetLink, getEvents, getForecast, mediaApi, serviceResponse, LS } from './ha.js';
+import { ent, link, fault, pending, ready, call, openEntity, hassUrl, startOAuth, saveLongLived, forgetLink, getEvents, getForecast, mediaApi, serviceResponse, LS } from './ha.js';
 import { ROOMS, SHARED, ALL_IDS, MUSIC } from './rooms.js';
 import { sfx, soundOn, toggleSound, SOUND_SLOTS, custom, soundSync, setCustomSound, clearCustomSound, previewSound, startSoundSync, refreshSounds, MAX_SECONDS } from './sfx.js';
 import { WxIcon, ScaleBar, tempColor, humColor } from './wx.jsx';
@@ -1892,12 +1892,12 @@ function KCamera({ visitor }) {
 }
 
 /* TELEMETRY: live house readings as LCARS meters + a solar track, with a stepped scan animation */
-function Meter({ label, value, unit, min, max, fn, alert, sub }) {
+function Meter({ label, value, unit, min, max, fn, alert, sub, id }) {
   const segs = 14;
   const v = value == null || Number.isNaN(+value) ? null : +value;
   const lit = v == null ? 0 : Math.max(1, Math.round(((Math.min(max, Math.max(min, v)) - min) / (max - min)) * segs));
   return (
-    <div class="tm" data-alert={alert ? '' : undefined} data-na={v == null ? '' : undefined}>
+    <div class="tm" data-link={id ? '' : undefined} onClick={id ? () => openEntity(id) : undefined} data-alert={alert ? '' : undefined} data-na={v == null ? '' : undefined}>
       <b class="tm-v">{v == null ? '--' : Math.round(v)}<small>{unit}</small></b>
       <div class="tm-bar" style={{ '--n': segs }}>
         {Array.from({ length: segs }, (_, i) => {
@@ -1964,7 +1964,7 @@ function KTelemetry() {
         <Meter label="OUTDOOR" unit="°" value={num(out)} min={-20} max={100} fn={tempColor} sub="HVAC UNIT" />
         <Meter label="WIND" unit="MPH" value={wx.wind_speed} min={0} max={40} sub={wx.wind_bearing != null ? `FROM ${Math.round(wx.wind_bearing)}°` : ''} />
         <Meter label="FREEZER" unit="°" value={fzv} min={-20} max={20} alert={fzv != null && fzv > 10} sub={fzv != null && fzv > 10 ? 'TOO WARM' : 'NOMINAL'} />
-        {T.cars.map(([l, id]) => { const v = num(ent(id).value); return <Meter label={l} unit="%" value={v} min={0} max={100} alert={v != null && v < 20} sub="BATTERY" />; })}
+        {T.cars.map(([l, id]) => { const v = num(ent(id).value); return <Meter id={id} label={l} unit="%" value={v} min={0} max={100} alert={v != null && v < 20} sub="BATTERY" />; })}
         <Meter label="LIGHTS" unit={`/${lights.length}`} value={on} min={0} max={lights.length} sub="ZONES ON" />
       </div>
     </section>
@@ -2123,7 +2123,7 @@ function useStatusEval(S) {
     for (const t of tiles) {
       if (done.has(t.id)) continue; done.add(t.id);
       const st = ent(t.id).value; const tone = tileTone(t, st);
-      if (tone === 'alert' || tone === 'warn' || tone === 'na') items.push({ g: key, l: t.l, tone, v: tileText(t, st) });
+      if (tone === 'alert' || tone === 'warn' || tone === 'na') items.push({ g: key, l: t.l, tone, v: tileText(t, st), id: t.id });
       worst = rank(tone) > rank(worst) ? tone : worst;
     }
     groups[key] = worst;
@@ -2131,12 +2131,12 @@ function useStatusEval(S) {
   let th = 'ok';
   for (const [l, id, o] of S.thermal) {
     const v = tempOf(id); const tone = meterTone(v, o);
-    if (tone !== 'ok') items.push({ g: 'THERMAL', l: `TEMP • ${l}`, tone, v: v == null ? 'NO SIGNAL' : `${Math.round(v)}°F` });
+    if (tone !== 'ok') items.push({ id, g: 'THERMAL', l: `TEMP • ${l}`, tone, v: v == null ? 'NO SIGNAL' : `${Math.round(v)}°F` });
     th = rank(tone) > rank(th) ? tone : th;
   }
   for (const [l, id, o] of S.humidity) {
     const v = num(ent(id).value); const tone = v == null ? 'na' : v > o.hi ? 'warn' : 'ok';
-    if (tone !== 'ok') items.push({ g: 'THERMAL', l: `HUMIDITY • ${l}`, tone, v: v == null ? 'NO SIGNAL' : `${Math.round(v)}%` });
+    if (tone !== 'ok') items.push({ id, g: 'THERMAL', l: `HUMIDITY • ${l}`, tone, v: v == null ? 'NO SIGNAL' : `${Math.round(v)}%` });
     th = rank(tone) > rank(th) ? tone : th;
   }
   groups.THERMAL = rank(th) > rank(groups.THERMAL ?? 'ok') ? th : (groups.THERMAL ?? 'ok');
@@ -2147,7 +2147,7 @@ function rank(t) { return { ok: 0, na: 1, warn: 2, alert: 3 }[t] ?? 0; }
 
 function STile({ t }) {
   const st = ent(t.id).value; const tone = tileTone(t, st);
-  return <div class="s-tile" data-tone={tone}><span>{t.l}{tileSub(t, st)}</span><b>{tileText(t, st)}</b></div>;
+  return <div class="s-tile" data-link="" role="button" title="Open device in Home Assistant" onClick={() => openEntity(t.id)} data-tone={tone}><span>{t.l}{tileSub(t, st)}</span><b>{tileText(t, st)}</b></div>;
 }
 function SGroup({ g, cols = 2 }) {
   return (
@@ -2167,7 +2167,7 @@ function SThermal() {
           const v = tempOf(id); const st = ent(id).value; const a = st?.attributes ?? {};
           const tone = meterTone(v, o);
           const sub = id.startsWith('climate.') ? (st && !UNAVAIL.has(st.state) ? `SET ${a.temperature ?? '--'}° • ${UP(a.hvac_action ?? st.state)}` : 'NO SIGNAL') : (tone === 'alert' ? `BELOW ${o.lo}°` : o.sub);
-          return <Meter label={l} unit="°" value={v} min={20} max={90} fn={tempColor} alert={tone === 'alert'} sub={sub} />;
+          return <Meter id={id} label={l} unit="°" value={v} min={20} max={90} fn={tempColor} alert={tone === 'alert'} sub={sub} />;
         })}
       </div>
     </section>
@@ -2181,7 +2181,7 @@ function SHumidity() {
       <SecHead title="HUMIDITY • AIR" tone="violet" />
       <div class="tm-row s-tm" style={{ gridTemplateColumns: `repeat(${S.humidity.length + 1}, minmax(0, 1fr))` }}>
         {S.humidity.map(([l, id, o]) => { const v = num(ent(id).value); return <Meter label={l} unit="%" value={v} min={0} max={100} fn={humColor} alert={v != null && v > o.hi} sub={v != null && v > o.hi ? `ABOVE ${o.hi}%` : 'RH'} />; })}
-        <Meter label="CO2" unit="" value={co2} min={400} max={2000} alert={co2 != null && co2 > 1500} sub={co2 == null ? '' : co2 > 1500 ? 'HIGH' : co2 > 1000 ? 'ELEVATED • PPM' : 'PPM'} />
+        <Meter id={S.co2} label="CO2" unit="" value={co2} min={400} max={2000} alert={co2 != null && co2 > 1500} sub={co2 == null ? '' : co2 > 1500 ? 'HIGH' : co2 > 1000 ? 'ELEVATED • PPM' : 'PPM'} />
       </div>
     </section>
   );
@@ -2197,11 +2197,11 @@ function SOccupancy() {
         const booked = c?.state === 'on';
         return (
           <div class="s-unit" data-booked={booked ? '' : undefined}>
-            <div class="s-unit-h"><b>{l}</b><span>{!c ? 'NOT FOUND' : UNAVAIL.has(c.state) ? 'NO SIGNAL' : booked ? 'RESERVED' : 'VACANT'}</span></div>
+            <div class="s-unit-h" data-link="" onClick={() => openEntity(cal)}><b>{l}</b><span>{!c ? 'NOT FOUND' : UNAVAIL.has(c.state) ? 'NO SIGNAL' : booked ? 'RESERVED' : 'VACANT'}</span></div>
             <div class="s-unit-r">
               <span>{booked ? 'UNTIL' : 'NEXT'}<b>{booked ? fmt(c.attributes?.end_time) : fmt(c?.attributes?.start_time)}</b></span>
-              <span>LAST ACTIVITY<b>{h == null ? '--' : h < 1 ? 'UNDER 1 H' : `${h.toFixed(1)} H AGO`}</b></span>
-              <span>PRESENCE<b>{!p || UNAVAIL.has(p.state) ? '--' : p.state === 'on' ? 'DETECTED' : 'NONE'}</b></span>
+              <span data-link="" onClick={() => openEntity(hrs)}>LAST ACTIVITY<b>{h == null ? '--' : h < 1 ? 'UNDER 1 H' : `${h.toFixed(1)} H AGO`}</b></span>
+              <span data-link="" onClick={() => openEntity(pres)}>PRESENCE<b>{!p || UNAVAIL.has(p.state) ? '--' : p.state === 'on' ? 'DETECTED' : 'NONE'}</b></span>
             </div>
             {booked && c.attributes?.message && <div class="s-unit-m">{c.attributes.message}</div>}
           </div>
@@ -2217,8 +2217,8 @@ function SPower() {
     <section class="panel">
       <SecHead title="SOLAR" tone="sunflower" />
       <div class="s-tiles" style={{ '--cols': 2 }}>
-        <div class="s-tile" data-tone={now == null ? 'na' : 'ok'}><span>OUTPUT NOW</span><b>{now == null ? 'NO SIGNAL' : now >= 1000 ? `${(now / 1000).toFixed(2)} KW` : `${Math.round(now)} W`}</b></div>
-        <div class="s-tile" data-tone={today == null ? 'na' : 'ok'}><span>TODAY</span><b>{today == null ? 'NO SIGNAL' : `${(today / 1000).toFixed(1)} KWH`}</b></div>
+        <div class="s-tile" data-link="" onClick={() => openEntity(S.solar.now)} data-tone={now == null ? 'na' : 'ok'}><span>OUTPUT NOW</span><b>{now == null ? 'NO SIGNAL' : now >= 1000 ? `${(now / 1000).toFixed(2)} KW` : `${Math.round(now)} W`}</b></div>
+        <div class="s-tile" data-link="" onClick={() => openEntity(S.solar.today)} data-tone={today == null ? 'na' : 'ok'}><span>TODAY</span><b>{today == null ? 'NO SIGNAL' : `${(today / 1000).toFixed(1)} KWH`}</b></div>
       </div>
     </section>
   );
@@ -2245,7 +2245,7 @@ function SAlerts({ E }) {
       <SecHead title={E.items.length ? `ALERTS • ${E.items.length}` : 'ALERTS'} tone={E.alerts ? 'red' : E.warns ? 'sunflower' : 'tan'} />
       {!E.items.length && <div class="s-clear">ALL SYSTEMS NOMINAL</div>}
       <div class="s-alist">
-        {E.items.map((x) => <div class="s-al" data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}
+        {E.items.map((x) => <div class="s-al" data-link="" onClick={() => openEntity(x.id)} data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}
       </div>
     </section>
   );
@@ -2285,10 +2285,10 @@ function SCam({ c: [label, id, wide, det] }) {
   return (
     <section class="panel s-cam" data-wide={wide ? '' : undefined} data-hot={hot ? '' : undefined}>
       <SecHead title={label} tone={hot ? 'red' : active.length ? 'sunflower' : 'violet'} />
-      {src ? <img class="s-feed" src={src} alt={`${label} camera`} />
+      {src ? <img class="s-feed" data-link="" onClick={() => openEntity(id)} src={src} alt={`${label} camera`} />
         : <div class="s-feed alert-nocam"><span>NO FEED</span><small>{link.value.mode === 'sim' ? 'SIMULATION • CAMERA REQUIRES LIVE LINK' : `${UP(cam?.state ?? 'CAMERA NOT FOUND')}`}</small></div>}
       <div class="s-det">
-        {det.map(([l, d]) => { const st = ent(d).value; const on = st?.state === 'on'; return <span data-on={on ? '' : undefined} data-kind={l === 'MOTION' ? 'motion' : 'ai'} data-na={!st || UNAVAIL.has(st.state) ? '' : undefined}>{l}<i>{!st || UNAVAIL.has(st.state) ? '--' : on ? 'NOW' : ago(st.last_changed)}</i></span>; })}
+        {det.map(([l, d]) => { const st = ent(d).value; const on = st?.state === 'on'; return <span data-link="" onClick={() => openEntity(d)} data-on={on ? '' : undefined} data-kind={l === 'MOTION' ? 'motion' : 'ai'} data-na={!st || UNAVAIL.has(st.state) ? '' : undefined}>{l}<i>{!st || UNAVAIL.has(st.state) ? '--' : on ? 'NOW' : ago(st.last_changed)}</i></span>; })}
       </div>
     </section>
   );
@@ -2344,7 +2344,7 @@ function StatusFrame() {
           <div class="page s-dpage" style={{ width: `${S_W}px`, height: `${S_H}px`, zoom }}>
             <section class="panel s-dalerts">
               <SecHead title={sub.length ? `${pg} • ${sub.length} ${sub.length > 1 ? 'ITEMS NEED' : 'ITEM NEEDS'} ATTENTION` : `${pg} • ALL NOMINAL`} tone={sub.some((x) => x.tone === 'alert') ? 'red' : sub.length ? 'sunflower' : LAMP_TONE[pg]} />
-              {sub.length > 0 && <div class="s-alist s-alist-h">{sub.map((x) => <div class="s-al" data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}</div>}
+              {sub.length > 0 && <div class="s-alist s-alist-h">{sub.map((x) => <div class="s-al" data-link="" onClick={() => openEntity(x.id)} data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}</div>}
             </section>
             <SDetail k={pg} />
           </div>
@@ -2387,7 +2387,7 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v5';
+export const BUILD = 'v6';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

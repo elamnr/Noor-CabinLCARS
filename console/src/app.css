@@ -1073,3 +1073,7 @@ h1, h2 { margin: 0; font-weight: 500; }
 .s-det span { font-size: 16px; }
 .s-app .s-lamp .nav-c, .s-app .nav.s-home .nav-c { font-size: 12px; }
 .s-detail .s-tile span { white-space: normal; overflow: visible; }
+/* v6: every reading opens its Home Assistant device page */
+.s-app [data-link] { cursor: pointer; }
+.s-app [data-link]:hover { filter: brightness(1.2); }
+.s-app [data-link]:active { filter: brightness(0.8); }

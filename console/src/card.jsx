@@ -55,6 +55,15 @@ class CabinLcars extends HTMLElement {
         },
         mediaFetch: (url) => fetch(url),
         device: async (name) => Object.values(this._hass.devices ?? {}).find((d) => d.name_by_user === name || d.name === name) ?? null,
+        openEntity: (id) => {
+          const dev = this._hass?.entities?.[id]?.device_id;
+          if (dev) {
+            history.pushState(null, '', `/config/devices/device/${dev}`);
+            window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } }));
+          } else {
+            this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: id }, bubbles: true, composed: true }));
+          }
+        },
         events: (eid, start, end) => this._hass.callApi('GET', `calendars/${eid}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
       };
       setBackend(this._backend);

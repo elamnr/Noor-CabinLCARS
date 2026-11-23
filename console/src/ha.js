@@ -26,6 +26,8 @@ export const pending = signal({});
 let backend = null;
 export const hassUrl = () => backend?.base ?? backend?.auth?.hassUrl ?? '';
 export function setBackend(b) { backend = b; }
+/** Open an entity's Home Assistant device page (or its more-info dialog when it has no device). No-op in simulation. */
+export function openEntity(id) { if (id) backend?.openEntity?.(id); }
 /** Media-library access for shared sounds; null until a backend that supports it is linked. */
 export function mediaApi() {
   const b = backend;
