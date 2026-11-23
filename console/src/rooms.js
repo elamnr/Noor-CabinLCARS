@@ -316,10 +316,8 @@ export const STATUS = {
     ['BUNK BATH', 'climate.bunk_bath_thermostat_thermostat', { lo: 50, hi: 85 }],
   ],
   humidity: [
-    ['WATER MAIN', 'sensor.water_main_temp_sensor_humidity', { hi: 85 }],
-    ['CRAWLSPACE', 'sensor.crawlspace_temp_sensor_humidity', { hi: 80 }],
     ['LOG CABIN', 'sensor.shelly_humidity_and_temp_sensor_log_cabin_humidity', { hi: 70 }],
-    ['BUNK MAIN', 'sensor.bunk_main_thermostat_humidity', { hi: 70 }],
+    ['BUNK HOUSE', 'sensor.bunk_main_thermostat_humidity', { hi: 70 }],
   ],
   co2: 'sensor.apollo_air_1_7bc400_co2',
   solar: { now: 'sensor.envoy_122117017195_current_power_production', today: 'sensor.envoy_122117017195_today_s_energy_production' },
