@@ -1,0 +1,10 @@
+import { render } from 'preact';
+import { App, ALL_IDS } from './app.jsx';
+import { boot } from './ha.js';
+import { SEED, simulate } from './sim.js';
+const q = new URLSearchParams(location.search);
+const theme = q.get('theme');
+if (theme) document.documentElement.dataset.blTheme = theme;
+const room = q.get('room') || (typeof __ROOM__ !== 'undefined' ? __ROOM__ : 'bedroom');
+render(<App room={room} />, document.getElementById('root'));
+boot(ALL_IDS, SEED, simulate);

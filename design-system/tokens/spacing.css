@@ -1,0 +1,15 @@
+:root{
+/* The seam: the black gap between every adjacent block. Never 0, never more than 1 bar. */
+--bl-seam:4px;--bl-seam-wide:8px;
+--bl-space-1:4px;--bl-space-2:8px;--bl-space-3:12px;--bl-space-4:16px;--bl-space-6:24px;--bl-space-8:32px;--bl-space-12:48px;--bl-space-16:64px;
+/* Bar thickness (horizontal) and arm width (vertical column) */
+--bl-bar-xs:8px;--bl-bar-sm:16px;--bl-bar-md:24px;--bl-bar-lg:32px;--bl-bar-xl:48px;
+--bl-arm-sm:80px;--bl-arm-md:120px;--bl-arm-lg:160px;
+/* Radii — everything is square or fully round; elbows derive from arm/bar */
+--bl-radius-none:0;--bl-radius-pill:9999px;
+/* Elevation — none. Flat fills on black. */
+--bl-shadow:none;
+--bl-dur-blink:900ms;/* @kind other */
+--bl-dur-fast:80ms;/* @kind other */
+--bl-ease:steps(1,end);/* @kind other */
+}

@@ -1,0 +1,83 @@
+name: Build, test and deploy console
+
+# Pushes to main that touch the console build it, run the CI checks, publish the built files
+# to the `deploy` branch, then call the Home Assistant webhook so HA pulls them into /config/www.
+# Any other branch does nothing. A failed build or test stops before anything is published.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'console/**'
+      - '!console/**/*.md'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: console
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium for tests
+        # apt mirrors occasionally stall on the runner; cap each attempt and retry once
+        run: |
+          for i in 1 2; do
+            timeout 300 npx playwright install --with-deps chromium && exit 0
+            echo "attempt $i stalled or failed; retrying"
+          done
+          exit 1
+
+      - name: Build
+        run: node build.mjs
+
+      - name: Test
+        run: node tests/ci.js
+
+      - name: Assemble deploy files
+        run: |
+          mkdir -p ../out
+          cp dist/bridgeline-bedroom-console.js ../out/
+          cp loader/bridgeline-loader.js ../out/
+          BUILD=$(grep -oE "BUILD = '[^']+'" src/app.jsx | cut -d"'" -f2)
+          printf '{"sha":"%s","build":"%s"}\n' "${GITHUB_SHA::7}" "$BUILD" > ../out/bridgeline-version.json
+          cat ../out/bridgeline-version.json
+
+      - name: Publish to deploy branch
+        working-directory: out
+        run: |
+          git init -q -b deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" deploy
+
+      - name: Tell Home Assistant to pull the new build
+        env:
+          HA_WEBHOOK_URL: ${{ secrets.HA_WEBHOOK_URL }}
+        run: |
+          if [ -z "$HA_WEBHOOK_URL" ]; then echo "HA_WEBHOOK_URL secret not set; skipping"; exit 0; fi
+          sleep 10
+          curl -fsS --retry 3 --retry-delay 5 -X POST -H "Content-Type: application/json" \
+            -d "{\"sha\":\"${GITHUB_SHA::7}\"}" "$HA_WEBHOOK_URL"
+          echo "Webhook accepted"

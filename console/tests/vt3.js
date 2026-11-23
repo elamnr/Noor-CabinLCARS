@@ -1,0 +1,18 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+const f=(p)=>'data:font/woff2;base64,'+fs.readFileSync(p).toString('base64');
+const FONTS=`@font-face{font-family:'Antonio';src:url(${f('node_modules/@fontsource-variable/antonio/files/antonio-latin-wght-normal.woff2')}) format('woff2');font-weight:100 700}`;
+(async()=>{const b=await chromium.launch();const errs=[];
+const p=await b.newPage({viewport:{width:1280,height:744}});p.on('pageerror',e=>errs.push(e.message));
+await p.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
+await p.goto('file://'+process.cwd()+'/dist/house-console.html');await p.addStyleTag({content:FONTS});await p.waitForTimeout(800);
+await p.evaluate(()=>[...document.querySelectorAll('.nav')].find(e=>e.textContent.endsWith('VEHICLES')).click());await p.waitForTimeout(300);
+await p.screenshot({path:'o-veh-cmd.png'});
+await p.evaluate(()=>[...document.querySelectorAll('.vc')].find(e=>e.textContent.includes('DETAILS')).click());await p.waitForTimeout(400);
+console.log(await p.evaluate(()=>{const b=document.querySelector('.vd-body');return [b.scrollHeight,b.clientHeight,document.querySelectorAll('.vd-row').length]}));
+await p.screenshot({path:'o-vd-raichu.png'});
+await p.evaluate(()=>document.querySelector('.vd-close').click());await p.waitForTimeout(200);
+await p.evaluate(()=>[...document.querySelectorAll('.vtab')].find(e=>e.textContent==='TESSIE').click());await p.waitForTimeout(200);
+await p.evaluate(()=>[...document.querySelectorAll('.vc')].find(e=>e.textContent.includes('DETAILS')).click());await p.waitForTimeout(400);
+console.log(await p.evaluate(()=>{const b=document.querySelector('.vd-body');return [b.scrollHeight,b.clientHeight,document.querySelectorAll('.vd-row').length]}));
+await p.screenshot({path:'o-vd-tessie.png'});
+console.log(errs.join('\n')||'no errors');await b.close();})();

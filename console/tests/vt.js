@@ -1,0 +1,24 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+const f=(p)=>'data:font/woff2;base64,'+fs.readFileSync(p).toString('base64');
+const FONTS=`@font-face{font-family:'Antonio';src:url(${f('node_modules/@fontsource-variable/antonio/files/antonio-latin-wght-normal.woff2')}) format('woff2');font-weight:100 700}
+@font-face{font-family:'Saira';src:url(${f('node_modules/@fontsource-variable/saira/files/saira-latin-wght-normal.woff2')}) format('woff2');font-weight:100 900}`;
+(async()=>{const b=await chromium.launch();const errs=[];
+const p=await b.newPage({viewport:{width:1280,height:744}});p.on('pageerror',e=>errs.push(e.message));
+await p.route(/fonts\.(googleapis|gstatic)/,r=>r.abort());
+await p.goto('file://'+process.cwd()+'/dist/house-console.html');await p.addStyleTag({content:FONTS});await p.waitForTimeout(800);
+await p.evaluate(()=>[...document.querySelectorAll('.nav')].find(e=>e.textContent.endsWith('VEHICLES')).click());await p.waitForTimeout(400);
+console.log(await p.evaluate(()=>{const s=document.querySelector('.veh-stage');const r=s.getBoundingClientRect();const m=document.querySelector('.main');return [s.style.transform,r.width|0,r.height|0,m.scrollHeight,m.clientHeight, document.querySelector('.vhead-t').getBoundingClientRect().right|0, document.querySelector('.vhead-status').getBoundingClientRect().left|0]}));
+await p.screenshot({path:'o-veh-raichu.png'});
+const clk=(t)=>p.evaluate((t)=>[...document.querySelectorAll('.vb')].find(e=>e.textContent.includes(t)).click(),t);
+await clk('FRUNK');await p.waitForTimeout(150);
+console.log(await p.evaluate(()=>[...document.querySelectorAll('.vb')].map(e=>e.dataset.tone+':'+e.textContent).join(' | ')));
+await clk('CONFIRM');await p.waitForTimeout(600);
+await clk('WINDOWS');await p.waitForTimeout(600);
+await clk('DRIVER SEAT');await p.waitForTimeout(400);
+console.log(await p.evaluate(()=>[...document.querySelectorAll('.vb')].map(e=>e.dataset.tone+':'+e.textContent).join(' | ')));
+await p.screenshot({path:'o-veh-raichu2.png'});
+await p.evaluate(()=>[...document.querySelectorAll('.vtab')].find(e=>e.textContent==='TESSIE').click());await p.waitForTimeout(300);
+await p.screenshot({path:'o-veh-tessie.png'});
+await p.setViewportSize({width:760,height:1000});await p.waitForTimeout(400);
+await p.screenshot({path:'o-veh-narrow.png'});
+console.log(errs.join('\n')||'no errors');await b.close();})();

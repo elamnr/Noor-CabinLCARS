@@ -1,0 +1,16 @@
+:root{
+--bl-font-display:'Antonio','Oswald','Arial Narrow',sans-serif;
+--bl-font-body:'Antonio','Oswald','Arial Narrow',sans-serif;
+--bl-font-wide:'Saira','Dosis',sans-serif;
+--bl-font-numeric:'Antonio','Oswald','Arial Narrow',sans-serif;
+--bl-weight-thin:200;--bl-weight-light:300;--bl-weight-regular:400;--bl-weight-medium:500;--bl-weight-bold:700;
+--bl-text-2xs:10px;--bl-text-xs:12px;--bl-text-sm:14px;--bl-text-md:18px;--bl-text-lg:24px;--bl-text-xl:32px;--bl-text-2xl:48px;--bl-text-3xl:72px;--bl-text-4xl:112px;
+--bl-leading-tight:0.88;--bl-leading-snug:1;--bl-leading-body:1.2;
+--bl-tracking-tight:-0.01em;--bl-tracking:0.02em;--bl-tracking-wide:0.08em;
+/* Semantic */
+--bl-type-title:var(--bl-weight-medium) var(--bl-text-2xl)/var(--bl-leading-tight) var(--bl-font-display);
+--bl-type-headline:var(--bl-weight-light) var(--bl-text-2xl)/1 var(--bl-font-wide);
+--bl-type-label:var(--bl-weight-medium) var(--bl-text-sm)/var(--bl-leading-snug) var(--bl-font-display);
+--bl-type-body:var(--bl-weight-regular) var(--bl-text-md)/var(--bl-leading-body) var(--bl-font-body);
+--bl-type-numeric:var(--bl-weight-regular) var(--bl-text-sm)/var(--bl-leading-snug) var(--bl-font-numeric);
+}

@@ -1,0 +1,14 @@
+<!-- @dsCard group="Components" viewport="700x220" name="Button" subtitle="Shapes, sizes, selected, disabled" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css"><style>*{box-sizing:border-box}html,body{margin:0}body{background:#000;color:var(--bl-tan);font-family:var(--bl-font-display);text-transform:uppercase;letter-spacing:.02em;padding:20px}</style><script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script><script src="../../_ds_bundle.js"></script></head><body><div id="root"></div>
+<script type="text/babel">
+const { Button } = window.BridgelineDesignSystem_9b57ee;
+
+function Card(){const [sel,setSel]=React.useState(1);return <div style={{display:'flex',flexDirection:'column',gap:16}}>
+<div style={{display:'flex',gap:8,alignItems:'flex-end'}}><Button size="sm" color="peach">Small</Button><Button color="lilac">Engage</Button><Button size="lg" color="amber">Override</Button><Button disabled>Offline</Button></div>
+<div style={{display:'flex',gap:4}}>{['Color','Mono','Outline'].map((l,i)=><Button key={l} shape={i===0?'left':i===2?'right':'block'} color="sky" selected={sel===i} onClick={()=>setSel(i)}>{l}</Button>)}</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(4,max-content)',gap:4}}>{['tan','peach','lilac','violet','sky','rose','sunflower','orchid'].map((c,i)=><Button key={c} shape="block" size="sm" color={c}>{String(i*137+1024)}</Button>)}</div>
+</div>}
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+</script></body></html>

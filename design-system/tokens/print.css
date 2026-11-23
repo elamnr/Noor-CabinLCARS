@@ -1,0 +1,27 @@
+:root{
+/* Garment print areas (max) */
+--print-area-front-w:12in;/* @kind other */
+--print-area-front-h:14in;/* @kind other */
+--print-area-back-w:12in;/* @kind other */
+--print-area-back-h:16in;/* @kind other */
+--print-area-chest-w:4in;/* @kind other */
+--print-area-chest-h:4in;/* @kind other */
+--print-area-sleeve-w:3in;/* @kind other */
+
+/* Minimums — screen print */
+--print-min-line-screen:1pt;/* @kind other */
+--print-min-seam-screen:1.2mm;/* @kind other */
+--print-min-text-screen:9pt;/* @kind other */
+--print-max-colors-screen:4;/* @kind other */
+
+/* Minimums — laser engrave */
+--print-min-line-engrave:0.25mm;/* @kind other */
+--print-min-seam-engrave:0.6mm;/* @kind other */
+--print-min-text-engrave:6pt;/* @kind other */
+
+/* Engrave surface previews (surface / mark) */
+--engrave-wood:#C89B6D;--engrave-wood-mark:#3B2414;
+--engrave-anodized:#1C1C1E;--engrave-anodized-mark:#E2E2E2;
+--engrave-slate:#2E3033;--engrave-slate-mark:#C4C8CC;
+--engrave-acrylic:#0E0E10;--engrave-acrylic-mark:#F3F3F3;
+}

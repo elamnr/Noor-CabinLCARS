@@ -1,0 +1,38 @@
+{
+  "v": 3,
+  "assetGroups": {
+    "notes": {
+      "files": {},
+      "name": "notes",
+      "order": []
+    }
+  },
+  "blobs": {},
+  "createdOnFiles": {
+    "at": "2026-10-25T03:40:14.285Z",
+    "v": 1
+  },
+  "docs": {
+    "readme": "project/README.md",
+    "sections": [
+      "project/ui_kits/artwork/README.md"
+    ]
+  },
+  "editing": "off",
+  "groups": [
+    "notes"
+  ],
+  "layout": "files",
+  "libraries": [],
+  "namespace": "BridgelineDesignSystem_9b57ee",
+  "sections": {},
+  "source": {
+    "app": "claude-design",
+    "exportedAt": "2026-10-25T03:40:14.285Z",
+    "map": "project/migration-map.json",
+    "projectId": "9b57eee5-ac46-42bf-b617-51b1164f30c3",
+    "url": "https://claude.ai/design/p/9b57eee5-ac46-42bf-b617-51b1164f30c3",
+    "v": 1
+  },
+  "title": "Bridgeline Design System"
+}

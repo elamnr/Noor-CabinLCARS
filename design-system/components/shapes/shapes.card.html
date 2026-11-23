@@ -1,0 +1,16 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Shapes" subtitle="Elbow, Bar, Pill — color / mono / outline" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css"><style>*{box-sizing:border-box}html,body{margin:0}body{background:#000;color:var(--bl-tan);font-family:var(--bl-font-display);text-transform:uppercase;letter-spacing:.02em;padding:20px}</style><script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script><script src="../../_ds_bundle.js"></script></head><body><div id="root"></div>
+<script type="text/babel">
+const { Elbow, Bar, Pill } = window.BridgelineDesignSystem_9b57ee;
+
+const R=({children,g=4})=><div style={{display:'flex',gap:g,alignItems:'flex-end',flexWrap:'wrap'}}>{children}</div>;
+function Card(){return <div style={{display:'flex',flexDirection:'column',gap:18}}>
+<R g={16}><Elbow corner="tl" width={150} height={84} arm={84} bar={24} color="amber" label="01"/><Elbow corner="tr" width={150} height={84} arm={84} bar={24} color="lilac" label="02"/><Elbow corner="bl" width={150} height={84} arm={84} bar={24} color="sky" label="03"/><Elbow corner="tl" width={150} height={84} arm={84} bar={24} mode="outline" label="04"/></R>
+<R><Bar length={160} thickness={24} caps="start" color="peach" label="2201"/><Bar length="flex" thickness={24} color="tan"/><Bar length={90} thickness={24} caps="end" color="sky" label="47"/></R>
+<R><Elbow corner="tl" width={170} height={84} arm={30} bar={40} outerRadius={70} innerRadius={30} color="amber" keyline/><Bar length={60} thickness={40} color="tan" orientation="horizontal"/><Bar length="flex" thickness={40} color="lilac" keyline label="4137-47"/><Bar orientation="vertical" length={84} thickness={30} color="tan" dividers={[0.4,0.48]}/></R>
+<R g={8}><Pill size="sm" color="peach" label="sm"/><Pill color="lilac" label="Deck 04"/><Pill size="lg" color="amber" label="2047"/><Pill shape="left" color="sky" label="left"/><Pill shape="right" color="violet" label="right"/><Pill shape="block" color="tan" label="block"/><Pill mode="outline" label="outline"/></R>
+</div>}
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+</script></body></html>

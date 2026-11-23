@@ -1,0 +1,7 @@
+node_modules/
+console/src/card.css.txt
+*.png
+!docs/screenshots/*.png
+!design-system/exports/*.png
+.DS_Store
+console/dist/

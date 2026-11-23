@@ -1,0 +1,36 @@
+<!-- @dsCard group="Lock screen" viewport="750x1334" name="Lock screen — Elam Noor" subtitle="750×1334 iPhone SE/8 wallpaper on SplitFrame" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Lock screen · Elam Noor</title><link rel="stylesheet" href="../../styles.css">
+<style>*{box-sizing:border-box}html,body{margin:0;background:#000}a{color:var(--bl-peach)}a:hover{color:var(--bl-sky)}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="image-slot.js"></script>
+<script src="../../_ds_bundle.js"></script></head><body><div id="root"></div>
+<script type="text/babel">
+const { SplitFrame } = window.BridgelineDesignSystem_9b57ee;
+const wide = { fontFamily: 'var(--bl-font-wide)', textTransform: 'uppercase', lineHeight: 1, margin: 0 };
+function LockScreen() {
+  return (
+    <div id="lockscreen" style={{ width: 750, height: 1334 }}>
+      <SplitFrame width={750} title="Tricorder" code="4137-47" codes={['91', '44612', '72', '42']} lines={['Elam Noor', 'Stardate 76557.3']}>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <div style={{ position: 'absolute', left: 48, top: 78 }}>
+            <div style={{ ...wide, fontWeight: 300, fontSize: 64, color: 'var(--bl-peach)' }}>Encrypted</div>
+            <div style={{ ...wide, fontWeight: 300, fontSize: 30, color: 'var(--bl-amber)', marginTop: 4 }}>Communication</div>
+          </div>
+          <div style={{ position: 'absolute', left: 185, top: 210, width: 320, height: 260 }}>
+            <image-slot id="lockscreen-emblem" shape="rounded" radius="8" placeholder="Drop your own emblem (optional)"></image-slot>
+          </div>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 500, textAlign: 'center' }}>
+            <div style={{ ...wide, fontWeight: 300, fontSize: 58, color: 'var(--bl-peach)' }}>Personal Command</div>
+            <div style={{ ...wide, fontWeight: 400, fontSize: 16, color: 'var(--bl-amber)', lineHeight: 1.75, marginTop: 20, letterSpacing: '0.01em' }}>
+              Bridgeline Registry • Deck 04 • Sector 001<br />Noor, Elam • KwaZulu-Natal, South Africa
+            </div>
+          </div>
+        </div>
+      </SplitFrame>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<LockScreen />);
+</script></body></html>

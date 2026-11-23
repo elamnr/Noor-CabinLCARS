@@ -1,0 +1,22 @@
+{
+  "name": "bridgeline-console",
+  "version": "1.29.0",
+  "description": "LCARS-style Home Assistant consoles for Retro House (Lovelace custom card + standalone previews)",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node tests/ci.js"
+  },
+  "author": "Elam Noor",
+  "license": "ISC",
+  "dependencies": {
+    "@fontsource-variable/antonio": "^5.3.0",
+    "@fontsource-variable/saira": "^5.3.0",
+    "@preact/signals": "^1.3.4",
+    "esbuild": "^0.28.2",
+    "preact": "^10.29.8"
+  },
+  "private": true,
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

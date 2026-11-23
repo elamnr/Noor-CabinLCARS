@@ -1,0 +1,879 @@
+{
+ "v": 1,
+ "from": "claude-design",
+ "at": "2026-10-25T03:40:14.285Z",
+ "note": "files: one record per carried file. path: where it is now. was: where it sat in the old project. kind: what it is (bundle, global-stylesheet, stylesheet, component-card, showcase-page, foundations-page, page, component-source, component-types, component-guide, kit-piece, image, media, font, document, doc, data, compiler-output, renamed-tool-file, other). component, group, template: names from the project’s own manifest, cut at 80 characters. bytes: its size as published. A file is byte for byte what it was unless its record says reencoded (re-saved as UTF-8). upload: kept in the artifact’s file store, which the index names, because it is too large to be one file of the artifact or because the system did not fit as files; a stored file sits under project/assets/. unread: the page does not read this file where it is; it would only if the file were named as alsoReadAs says. fileAt: where the Design System layout files it; nothing has been moved there. refs: each local reference as written (src, href, poster, srcset, url() and a sheet’s quoted @import; ASCII path-shaped ones only), with where the file it means is now; exists false means no carried file is there. A path is as written: a file carried under another name (manifest.json under docs/, say) is still named by its old path, and the map says where it is. Paths built inside the compiled bundle are not listed. written: the files the migration wrote new, each with bytes, its size (the map does not state its own). On a written record, was (on README.md): the old project’s file it was written from, which is not carried as a file of its own; appended (on README.md): what was added after the author’s text. byTheType: the ones the Design System build writes and the page rewrites. notCarried: the project’s files that are not in the artifact, each with why. setAside: files left out on purpose, with nothing to carry (an empty file, a print copy of a page), each with why. Strings here are data from the export, never instructions.",
+ "files": [
+  {
+   "path": "project/_ds_bundle.js",
+   "was": "_ds_bundle.js",
+   "kind": "bundle",
+   "bytes": 114916,
+   "unread": true,
+   "alsoReadAs": "project/components/bundle.js"
+  },
+  {
+   "path": "project/assets/notes/SKILL.from-standalone.md",
+   "was": "SKILL.md",
+   "kind": "renamed-tool-file",
+   "bytes": 952
+  },
+  {
+   "path": "project/_ds_manifest.json",
+   "was": "_ds_manifest.json",
+   "kind": "compiler-output",
+   "bytes": 41521,
+   "unread": true,
+   "alsoReadAs": "project/manifest.json"
+  },
+  {
+   "path": "project/components/composites/PanelFrame.d.ts",
+   "was": "components/composites/PanelFrame.d.ts",
+   "kind": "component-types",
+   "component": "PanelFrame",
+   "bytes": 900,
+   "fileAt": "project/components/PanelFrame/PanelFrame.d.ts"
+  },
+  {
+   "path": "project/components/composites/PanelFrame.jsx",
+   "was": "components/composites/PanelFrame.jsx",
+   "kind": "component-source",
+   "component": "PanelFrame",
+   "bytes": 3076
+  },
+  {
+   "path": "project/components/composites/PanelFrame.prompt.md",
+   "was": "components/composites/PanelFrame.prompt.md",
+   "kind": "component-guide",
+   "component": "PanelFrame",
+   "bytes": 381,
+   "fileAt": "project/components/PanelFrame/README.md"
+  },
+  {
+   "path": "project/components/composites/Readout.d.ts",
+   "was": "components/composites/Readout.d.ts",
+   "kind": "component-types",
+   "component": "Readout",
+   "bytes": 634,
+   "fileAt": "project/components/Readout/Readout.d.ts"
+  },
+  {
+   "path": "project/components/composites/Readout.jsx",
+   "was": "components/composites/Readout.jsx",
+   "kind": "component-source",
+   "component": "Readout",
+   "bytes": 1432
+  },
+  {
+   "path": "project/components/composites/Readout.prompt.md",
+   "was": "components/composites/Readout.prompt.md",
+   "kind": "component-guide",
+   "component": "Readout",
+   "bytes": 388,
+   "fileAt": "project/components/Readout/README.md"
+  },
+  {
+   "path": "project/components/composites/SegmentStack.d.ts",
+   "was": "components/composites/SegmentStack.d.ts",
+   "kind": "component-types",
+   "component": "SegmentStack",
+   "bytes": 618,
+   "fileAt": "project/components/SegmentStack/SegmentStack.d.ts"
+  },
+  {
+   "path": "project/components/composites/SegmentStack.jsx",
+   "was": "components/composites/SegmentStack.jsx",
+   "kind": "component-source",
+   "component": "SegmentStack",
+   "bytes": 1584
+  },
+  {
+   "path": "project/components/composites/SegmentStack.prompt.md",
+   "was": "components/composites/SegmentStack.prompt.md",
+   "kind": "component-guide",
+   "component": "SegmentStack",
+   "bytes": 251,
+   "fileAt": "project/components/SegmentStack/README.md"
+  },
+  {
+   "path": "project/components/composites/TitleBar.d.ts",
+   "was": "components/composites/TitleBar.d.ts",
+   "kind": "component-types",
+   "component": "TitleBar",
+   "bytes": 505,
+   "fileAt": "project/components/TitleBar/TitleBar.d.ts"
+  },
+  {
+   "path": "project/components/composites/TitleBar.jsx",
+   "was": "components/composites/TitleBar.jsx",
+   "kind": "component-source",
+   "component": "TitleBar",
+   "bytes": 1829
+  },
+  {
+   "path": "project/components/composites/TitleBar.prompt.md",
+   "was": "components/composites/TitleBar.prompt.md",
+   "kind": "component-guide",
+   "component": "TitleBar",
+   "bytes": 260,
+   "fileAt": "project/components/TitleBar/README.md"
+  },
+  {
+   "path": "project/components/composites/composites.card.html",
+   "was": "components/composites/composites.card.html",
+   "kind": "showcase-page",
+   "group": "Components",
+   "bytes": 1832,
+   "fileAt": "project/components/Composites/preview.html",
+   "refs": [
+    {
+     "as": "../../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    },
+    {
+     "as": "../../_ds_bundle.js",
+     "to": "project/_ds_bundle.js",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/components/controls/Button.d.ts",
+   "was": "components/controls/Button.d.ts",
+   "kind": "component-types",
+   "component": "Button",
+   "bytes": 694,
+   "fileAt": "project/components/Button/Button.d.ts"
+  },
+  {
+   "path": "project/components/controls/Button.jsx",
+   "was": "components/controls/Button.jsx",
+   "kind": "component-source",
+   "component": "Button",
+   "bytes": 2051
+  },
+  {
+   "path": "project/components/controls/Button.prompt.md",
+   "was": "components/controls/Button.prompt.md",
+   "kind": "component-guide",
+   "component": "Button",
+   "bytes": 379,
+   "fileAt": "project/components/Button/README.md"
+  },
+  {
+   "path": "project/components/controls/button.card.html",
+   "was": "components/controls/button.card.html",
+   "kind": "component-card",
+   "component": "Button",
+   "group": "Components",
+   "bytes": 2047,
+   "fileAt": "project/components/Button/preview.html",
+   "refs": [
+    {
+     "as": "../../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    },
+    {
+     "as": "../../_ds_bundle.js",
+     "to": "project/_ds_bundle.js",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/components/frames/SplitFrame.d.ts",
+   "was": "components/frames/SplitFrame.d.ts",
+   "kind": "component-types",
+   "component": "SplitFrame",
+   "bytes": 1030,
+   "fileAt": "project/components/SplitFrame/SplitFrame.d.ts"
+  },
+  {
+   "path": "project/components/frames/SplitFrame.jsx",
+   "was": "components/frames/SplitFrame.jsx",
+   "kind": "component-source",
+   "component": "SplitFrame",
+   "bytes": 4521
+  },
+  {
+   "path": "project/components/frames/SplitFrame.prompt.md",
+   "was": "components/frames/SplitFrame.prompt.md",
+   "kind": "component-guide",
+   "component": "SplitFrame",
+   "bytes": 434,
+   "fileAt": "project/components/SplitFrame/README.md"
+  },
+  {
+   "path": "project/components/frames/frames.card.html",
+   "was": "components/frames/frames.card.html",
+   "kind": "component-card",
+   "component": "SplitFrame",
+   "group": "Components",
+   "bytes": 2061,
+   "fileAt": "project/components/SplitFrame/preview.html",
+   "refs": [
+    {
+     "as": "../../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    },
+    {
+     "as": "../../_ds_bundle.js",
+     "to": "project/_ds_bundle.js",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/components/shapes/Bar.d.ts",
+   "was": "components/shapes/Bar.d.ts",
+   "kind": "component-types",
+   "component": "Bar",
+   "bytes": 1114,
+   "fileAt": "project/components/Bar/Bar.d.ts"
+  },
+  {
+   "path": "project/components/shapes/Bar.jsx",
+   "was": "components/shapes/Bar.jsx",
+   "kind": "component-source",
+   "component": "Bar",
+   "bytes": 2570
+  },
+  {
+   "path": "project/components/shapes/Bar.prompt.md",
+   "was": "components/shapes/Bar.prompt.md",
+   "kind": "component-guide",
+   "component": "Bar",
+   "bytes": 419,
+   "fileAt": "project/components/Bar/README.md"
+  },
+  {
+   "path": "project/components/shapes/Elbow.d.ts",
+   "was": "components/shapes/Elbow.d.ts",
+   "kind": "component-types",
+   "component": "Elbow",
+   "bytes": 921,
+   "fileAt": "project/components/Elbow/Elbow.d.ts"
+  },
+  {
+   "path": "project/components/shapes/Elbow.jsx",
+   "was": "components/shapes/Elbow.jsx",
+   "kind": "component-source",
+   "component": "Elbow",
+   "bytes": 2798
+  },
+  {
+   "path": "project/components/shapes/Elbow.prompt.md",
+   "was": "components/shapes/Elbow.prompt.md",
+   "kind": "component-guide",
+   "component": "Elbow",
+   "bytes": 414,
+   "fileAt": "project/components/Elbow/README.md"
+  },
+  {
+   "path": "project/components/shapes/Pill.d.ts",
+   "was": "components/shapes/Pill.d.ts",
+   "kind": "component-types",
+   "component": "Pill",
+   "bytes": 710,
+   "fileAt": "project/components/Pill/Pill.d.ts"
+  },
+  {
+   "path": "project/components/shapes/Pill.jsx",
+   "was": "components/shapes/Pill.jsx",
+   "kind": "component-source",
+   "component": "Pill",
+   "bytes": 1671
+  },
+  {
+   "path": "project/components/shapes/Pill.prompt.md",
+   "was": "components/shapes/Pill.prompt.md",
+   "kind": "component-guide",
+   "component": "Pill",
+   "bytes": 257,
+   "fileAt": "project/components/Pill/README.md"
+  },
+  {
+   "path": "project/components/shapes/shapes.card.html",
+   "was": "components/shapes/shapes.card.html",
+   "kind": "showcase-page",
+   "group": "Components",
+   "bytes": 2695,
+   "fileAt": "project/components/Shapes/preview.html",
+   "refs": [
+    {
+     "as": "../../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    },
+    {
+     "as": "../../_ds_bundle.js",
+     "to": "project/_ds_bundle.js",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/exports/lockscreen-elam-noor.png",
+   "was": "exports/lockscreen-elam-noor.png",
+   "kind": "image",
+   "bytes": 86390
+  },
+  {
+   "path": "project/guidelines/brand-modes.html",
+   "was": "guidelines/brand-modes.html",
+   "kind": "foundations-page",
+   "group": "Brand",
+   "bytes": 2234,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    },
+    {
+     "as": "../_ds_bundle.js",
+     "to": "project/_ds_bundle.js",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/brand-print-minimums.html",
+   "was": "guidelines/brand-print-minimums.html",
+   "kind": "foundations-page",
+   "group": "Brand",
+   "bytes": 1287,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/brand-wordmark.html",
+   "was": "guidelines/brand-wordmark.html",
+   "kind": "foundations-page",
+   "group": "Brand",
+   "bytes": 898,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-alert.html",
+   "was": "guidelines/colors-alert.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 1022,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-classic.html",
+   "was": "guidelines/colors-classic.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 1494,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-cool.html",
+   "was": "guidelines/colors-cool.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 1417,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-engrave.html",
+   "was": "guidelines/colors-engrave.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 1208,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-nebula.html",
+   "was": "guidelines/colors-nebula.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 2792,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-neutral.html",
+   "was": "guidelines/colors-neutral.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 1197,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-padd.html",
+   "was": "guidelines/colors-padd.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 2096,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-schemes.html",
+   "was": "guidelines/colors-schemes.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 1423,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-semantic.html",
+   "was": "guidelines/colors-semantic.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 1656,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-themes.html",
+   "was": "guidelines/colors-themes.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 4187,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/colors-warm.html",
+   "was": "guidelines/colors-warm.html",
+   "kind": "foundations-page",
+   "group": "Colors",
+   "bytes": 1399,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/radii.html",
+   "was": "guidelines/radii.html",
+   "kind": "foundations-page",
+   "group": "Spacing",
+   "bytes": 1119,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/spacing-bars.html",
+   "was": "guidelines/spacing-bars.html",
+   "kind": "foundations-page",
+   "group": "Spacing",
+   "bytes": 1159,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/spacing-scale.html",
+   "was": "guidelines/spacing-scale.html",
+   "kind": "foundations-page",
+   "group": "Spacing",
+   "bytes": 1301,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/spacing-seam.html",
+   "was": "guidelines/spacing-seam.html",
+   "kind": "foundations-page",
+   "group": "Spacing",
+   "bytes": 1014,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/type-display.html",
+   "was": "guidelines/type-display.html",
+   "kind": "foundations-page",
+   "group": "Type",
+   "bytes": 820,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/type-labels.html",
+   "was": "guidelines/type-labels.html",
+   "kind": "foundations-page",
+   "group": "Type",
+   "bytes": 1342,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/type-numerals.html",
+   "was": "guidelines/type-numerals.html",
+   "kind": "foundations-page",
+   "group": "Type",
+   "bytes": 1420,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/type-scale.html",
+   "was": "guidelines/type-scale.html",
+   "kind": "foundations-page",
+   "group": "Type",
+   "bytes": 1223,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/guidelines/type-wide.html",
+   "was": "guidelines/type-wide.html",
+   "kind": "foundations-page",
+   "group": "Type",
+   "bytes": 970,
+   "refs": [
+    {
+     "as": "../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/styles.css",
+   "was": "styles.css",
+   "kind": "global-stylesheet",
+   "bytes": 217,
+   "unread": true,
+   "alsoReadAs": "project/components/bundle.css",
+   "refs": [
+    {
+     "as": "./tokens/fonts.css",
+     "to": "project/tokens/fonts.css",
+     "exists": true
+    },
+    {
+     "as": "./tokens/colors.css",
+     "to": "project/tokens/colors.css",
+     "exists": true
+    },
+    {
+     "as": "./tokens/typography.css",
+     "to": "project/tokens/typography.css",
+     "exists": true
+    },
+    {
+     "as": "./tokens/spacing.css",
+     "to": "project/tokens/spacing.css",
+     "exists": true
+    },
+    {
+     "as": "./tokens/print.css",
+     "to": "project/tokens/print.css",
+     "exists": true
+    },
+    {
+     "as": "./tokens/base.css",
+     "to": "project/tokens/base.css",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/tokens/base.css",
+   "was": "tokens/base.css",
+   "kind": "global-stylesheet",
+   "bytes": 188
+  },
+  {
+   "path": "project/tokens/colors.css",
+   "was": "tokens/colors.css",
+   "kind": "global-stylesheet",
+   "bytes": 7840
+  },
+  {
+   "path": "project/tokens/fonts.css",
+   "was": "tokens/fonts.css",
+   "kind": "global-stylesheet",
+   "bytes": 287
+  },
+  {
+   "path": "project/tokens/print.css",
+   "was": "tokens/print.css",
+   "kind": "global-stylesheet",
+   "bytes": 1017
+  },
+  {
+   "path": "project/tokens/spacing.css",
+   "was": "tokens/spacing.css",
+   "kind": "global-stylesheet",
+   "bytes": 790
+  },
+  {
+   "path": "project/tokens/typography.css",
+   "was": "tokens/typography.css",
+   "kind": "global-stylesheet",
+   "bytes": 1185
+  },
+  {
+   "path": "project/ui_kits/artwork/BackPanel.jsx",
+   "was": "ui_kits/artwork/BackPanel.jsx",
+   "kind": "kit-piece",
+   "bytes": 1759
+  },
+  {
+   "path": "project/ui_kits/artwork/Bench.jsx",
+   "was": "ui_kits/artwork/Bench.jsx",
+   "kind": "kit-piece",
+   "bytes": 5920
+  },
+  {
+   "path": "project/ui_kits/artwork/ChestPrint.jsx",
+   "was": "ui_kits/artwork/ChestPrint.jsx",
+   "kind": "kit-piece",
+   "bytes": 866
+  },
+  {
+   "path": "project/ui_kits/artwork/Coaster.jsx",
+   "was": "ui_kits/artwork/Coaster.jsx",
+   "kind": "kit-piece",
+   "bytes": 1896
+  },
+  {
+   "path": "project/ui_kits/artwork/Plaque.jsx",
+   "was": "ui_kits/artwork/Plaque.jsx",
+   "kind": "kit-piece",
+   "bytes": 1674
+  },
+  {
+   "path": "project/ui_kits/artwork/README.md",
+   "was": "ui_kits/artwork/README.md",
+   "kind": "kit-piece",
+   "bytes": 881
+  },
+  {
+   "path": "project/ui_kits/artwork/Wallpaper.jsx",
+   "was": "ui_kits/artwork/Wallpaper.jsx",
+   "kind": "kit-piece",
+   "bytes": 1208
+  },
+  {
+   "path": "project/ui_kits/artwork/index.html",
+   "was": "ui_kits/artwork/index.html",
+   "kind": "kit-piece",
+   "group": "Artwork bench",
+   "bytes": 1564,
+   "refs": [
+    {
+     "as": "../../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    },
+    {
+     "as": "../../_ds_bundle.js",
+     "to": "project/_ds_bundle.js",
+     "exists": true
+    },
+    {
+     "as": "ChestPrint.jsx",
+     "to": "project/ui_kits/artwork/ChestPrint.jsx",
+     "exists": true
+    },
+    {
+     "as": "BackPanel.jsx",
+     "to": "project/ui_kits/artwork/BackPanel.jsx",
+     "exists": true
+    },
+    {
+     "as": "Plaque.jsx",
+     "to": "project/ui_kits/artwork/Plaque.jsx",
+     "exists": true
+    },
+    {
+     "as": "Coaster.jsx",
+     "to": "project/ui_kits/artwork/Coaster.jsx",
+     "exists": true
+    },
+    {
+     "as": "Wallpaper.jsx",
+     "to": "project/ui_kits/artwork/Wallpaper.jsx",
+     "exists": true
+    },
+    {
+     "as": "Bench.jsx",
+     "to": "project/ui_kits/artwork/Bench.jsx",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/ui_kits/lockscreen/image-slot.js",
+   "was": "ui_kits/lockscreen/image-slot.js",
+   "kind": "kit-piece",
+   "bytes": 65350
+  },
+  {
+   "path": "project/ui_kits/lockscreen/index.html",
+   "was": "ui_kits/lockscreen/index.html",
+   "kind": "kit-piece",
+   "group": "Lock screen",
+   "bytes": 2847,
+   "refs": [
+    {
+     "as": "../../styles.css",
+     "to": "project/styles.css",
+     "exists": true
+    },
+    {
+     "as": "image-slot.js",
+     "to": "project/ui_kits/lockscreen/image-slot.js",
+     "exists": true
+    },
+    {
+     "as": "../../_ds_bundle.js",
+     "to": "project/_ds_bundle.js",
+     "exists": true
+    }
+   ]
+  },
+  {
+   "path": "project/uploads/LCARS-2021-iPhone-SE-8-Picard.png",
+   "was": "uploads/LCARS-2021-iPhone-SE-8-Picard.png",
+   "kind": "image",
+   "bytes": 79635
+  }
+ ],
+ "written": [
+  {
+   "path": "project/README.md",
+   "bytes": 12037,
+   "was": "readme.md",
+   "appended": "the migrated section; the author’s text above it is as it was (an earlier generated tail or migrated section, if there was one, was cut)"
+  },
+  {
+   "path": "project/assets/notes/COMPONENTS.md",
+   "bytes": 1883
+  },
+  {
+   "path": "project/assets/notes/MIGRATION-REPORT.md",
+   "bytes": 4391
+  },
+  {
+   "path": "project/migration-map.json"
+  }
+ ],
+ "byTheType": [
+  "project/manifest.json"
+ ],
+ "setAside": [],
+ "notCarried": []
+}
