@@ -2855,33 +2855,49 @@ function MLight({ c: [label, id] }) {
 /* CONTROL tab: accordion sections, one open at a time (remembered). The closed header carries a one-line summary. */
 const mSec = signal((() => { try { return localStorage.getItem('cabinlcars.mobile.sec') ?? 'ILLUMINATION'; } catch { return 'ILLUMINATION'; } })());
 function openSec(k) { mSec.value = mSec.peek() === k ? '' : k; try { localStorage.setItem('cabinlcars.mobile.sec', mSec.value); } catch {} }
-function MSection({ k, tone, sum, warn, children }) {
+/* Section headers keep a fixed, non-status colour; the whole header turns red when that system is outside its norm. */
+function MSection({ k, tone, sum, alert, children }) {
   const open = mSec.value === k;
   return (
-    <section class="m-acc" data-open={open ? '' : undefined} style={{ '--acc': `var(--bl-${tone})` }}>
+    <section class="m-acc" data-open={open ? '' : undefined} data-alert={alert ? '' : undefined} style={{ '--acc': `var(--bl-${alert ? 'red' : tone})` }}>
       <button class="m-acc-h" aria-expanded={open} onClick={() => openSec(k)}>
-        <span class="m-acc-t">{k}</span><span class="m-acc-s" data-warn={warn ? '' : undefined}>{sum}</span><i class="m-acc-i">{open ? '−' : '+'}</i>
+        <span class="m-acc-t">{k}</span><span class="m-acc-s">{sum}</span><i class="m-acc-i">{open ? '−' : '+'}</i>
       </button>
       <div class="m-acc-b"><div class="m-acc-in">{children}</div></div>
     </section>
   );
 }
 function MControl() {
-  const C = useRoom().status.controls;
+  const S = useRoom().status; const C = S.controls;
   const st = (id) => ent(id).value;
+  const na = (id) => isNa(st(id));
+  // ILLUMINATION: out of norm = a light group not reporting
   const lightsOn = C.lights.filter(([, id]) => st(id)?.state === 'on').length;
+  const lightsNa = C.lights.filter(([, id]) => na(id));
+  // LOCKS: out of norm = unlocked, jammed or not reporting
+  const lockBad = C.locks.filter(([, id]) => st(id)?.state !== 'locked');
   const unlocked = C.locks.filter(([, id]) => st(id)?.state === 'unlocked').length;
-  const heatOff = C.climate.filter(([, id]) => st(id)?.state === 'off').length;
+  // ENVIRONMENTAL: out of norm = a thermostat not reporting, outside its freeze/overheat band, or Log Cabin heat off.
+  // Bunk House heat off is normal (turned off on vacancy; no plumbing).
+  const band = (id) => S.thermal.find((m) => m[1] === id)?.[2] ?? {};
+  const envBad = C.climate.map(([l, id]) => {
+    const x = st(id); if (isNa(x)) return `${l} NO SIGNAL`;
+    const tone = meterTone(x.attributes?.current_temperature ?? null, band(id));
+    if (tone === 'alert' || tone === 'warn') return `${l} ${Math.round(x.attributes.current_temperature)}°`;
+    if (x.state === 'off' && id.includes('log_cabin')) return `${l} HEAT OFF`;
+    return null;
+  }).filter(Boolean);
   const temps = C.climate.map(([, id]) => st(id)?.attributes?.current_temperature).filter((v) => v != null);
-  const sw = C.switches.map(([l, id, onT, offT]) => { const s = st(id); return !s || UNAVAIL.has(s.state) ? 'NO SIGNAL' : s.state === 'on' ? onT : offT; });
-  const swWarn = C.switches.some(([, id]) => st(id)?.state !== 'on');
+  // WATER: out of norm = valve closed, heat tape off, or not reporting
+  const sw = C.switches.map(([l, id, onT, offT]) => { const x = st(id); return isNa(x) ? 'NO SIGNAL' : x.state === 'on' ? onT : offT; });
+  const swBad = C.switches.some(([, id]) => st(id)?.state !== 'on');
   return (
     <div class="m-stack m-accs">
-      <div class="m-note">CONTROLS ACT ON THE CABIN • RED BUTTONS NEED A SECOND TAP WITHIN 4 S</div>
-      <MSection k="ILLUMINATION" tone="sunflower" sum={`${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}</MSection>
-      <MSection k="LOCKS" tone="violet" sum={unlocked ? `${unlocked} UNLOCKED` : 'ALL LOCKED'} warn={unlocked > 0}>{C.locks.map((c) => <MLock c={c} />)}</MSection>
-      <MSection k="ENVIRONMENTAL" tone="rose" sum={heatOff ? `${heatOff} HEAT OFF` : temps.length ? `${Math.round(Math.min(...temps))}°–${Math.round(Math.max(...temps))}°` : '--'} warn={heatOff > 0}>{C.climate.map((c) => <MClimate c={c} />)}</MSection>
-      <MSection k="WATER" tone="sky" sum={`VALVE ${sw[0]} • TAPE ${sw[1]}`} warn={swWarn}>{C.switches.map((c) => <MSwitch c={c} />)}</MSection>
+      <div class="m-note">CONTROLS ACT ON THE CABIN • RED BUTTONS NEED A SECOND TAP WITHIN 4 S • A RED HEADER MEANS SOMETHING IS OUT OF THE NORM</div>
+      <MSection k="ILLUMINATION" tone="bone" alert={lightsNa.length > 0} sum={lightsNa.length ? `${lightsNa.length} NOT REPORTING` : `${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}</MSection>
+      <MSection k="LOCKS" tone="violet" alert={lockBad.length > 0} sum={lockBad.length ? (unlocked ? `${unlocked} UNLOCKED` : `${lockBad.length} CHECK LOCK`) : 'ALL LOCKED'}>{C.locks.map((c) => <MLock c={c} />)}</MSection>
+      <MSection k="ENVIRONMENTAL" tone="peach" alert={envBad.length > 0} sum={envBad.length ? envBad.join(' • ') : temps.length ? `${Math.round(Math.min(...temps))}°–${Math.round(Math.max(...temps))}°` : '--'}>{C.climate.map((c) => <MClimate c={c} />)}</MSection>
+      <MSection k="WATER" tone="sky" alert={swBad} sum={`VALVE ${sw[0]} • TAPE ${sw[1]}`}>{C.switches.map((c) => <MSwitch c={c} />)}</MSection>
     </div>
   );
 }
@@ -3216,7 +3232,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v20';
+export const BUILD = 'v21';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
