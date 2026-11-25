@@ -2893,7 +2893,6 @@ function MControl() {
   const swBad = C.switches.some(([, id]) => st(id)?.state !== 'on');
   return (
     <div class="m-stack m-accs">
-      <div class="m-note">CONTROLS ACT ON THE CABIN • RED BUTTONS NEED A SECOND TAP WITHIN 4 S • A RED HEADER MEANS SOMETHING IS OUT OF THE NORM</div>
       <MSection k="ILLUMINATION" tone="bone" alert={lightsNa.length > 0} sum={lightsNa.length ? `${lightsNa.length} NOT REPORTING` : `${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}</MSection>
       <MSection k="LOCKS" tone="violet" alert={lockBad.length > 0} sum={lockBad.length ? (unlocked ? `${unlocked} UNLOCKED` : `${lockBad.length} CHECK LOCK`) : 'ALL LOCKED'}>{C.locks.map((c) => <MLock c={c} />)}</MSection>
       <MSection k="ENVIRONMENTAL" tone="peach" alert={envBad.length > 0} sum={envBad.length ? envBad.join(' • ') : temps.length ? `${Math.round(Math.min(...temps))}°–${Math.round(Math.max(...temps))}°` : '--'}>{C.climate.map((c) => <MClimate c={c} />)}</MSection>
@@ -2998,13 +2997,13 @@ function MWater({ att }) {
         {W.leaks.filter((x) => x[2]).map(([l, , b]) => <MBatt label={`${l} SENSOR BATTERY`} id={b} />)}
       </MPanel>
       <MPanel t="MAIN SHUTOFF VALVE" tone="sky">
-        <MRow label="VALVE" id={v.id} value={isNa(valve) ? 'NO SIGNAL' : open ? 'OPEN' : 'CLOSED'} tone={isNa(valve) ? 'na' : open ? 'ok' : 'warn'} sub="OPEN OR CLOSE IT ON THE CONTROL TAB" />
+        <MRow label="VALVE" id={v.id} value={isNa(valve) ? 'NO SIGNAL' : open ? 'OPEN' : 'CLOSED'} tone={isNa(valve) ? 'na' : open ? 'ok' : 'warn'} />
         {binRow('AC POWER', v.mains, 'DISCONNECTED', 'CONNECTED')}
         {binRow('BACKUP BATTERY', v.backup, 'DISCONNECTED', 'CONNECTED', 'warn')}
         {binRow('VALVE JAMMED', v.jammed, 'JAMMED', 'NO')}
       </MPanel>
       <MPanel t="WATER MAIN • FREEZE WATCH" tone="sky">
-        <MBar label="PIPE AIR TEMP" id={W.main.temp} v={t} min={20} max={70} unit="°F" zones={[[20, 35, 'alert'], [35, 40, 'warn']]} sub="YELLOW BELOW 40° • RED BELOW 35°" />
+        <MBar label="PIPE AIR TEMP" id={W.main.temp} v={t} min={20} max={70} unit="°F" zones={[[20, 35, 'alert'], [35, 40, 'warn']]} />
         {binRow('HEAT TAPE', W.main.tape, 'ON', 'OFF', 'ok', 'warn')}
         <MBatt label="TEMP SENSOR BATTERY" id={W.main.battery} />
       </MPanel>
@@ -3052,9 +3051,9 @@ function MSeptic({ att }) {
         {h.err && <div class="m-note">HISTORY UNAVAILABLE • {UP(h.err)}</div>}
       </MPanel>
       <MPanel t="MONITOR" tone="peach">
-        <MRow label="SEPTIC MONITOR" id={P.node} value={isNa(node) ? 'NO SIGNAL' : node.state === 'dead' ? 'OFFLINE' : 'ONLINE'} tone={nodeTone} sub="OFFLINE USUALLY MEANS THE SEPTIC PANEL LOST POWER" />
-        <MRow label="LAST CHECK-IN PING" id={P.ping} value={isNa(ent(P.ping).value) ? '--' : ago(ent(P.ping).value.state)} sub="PINGED AT 06:00 AND 18:00" />
-        <MRow label="HIGH-LEVEL ALARM" value="NOT WIRED" tone="na" sub={P.alarmNote} />
+        <MRow label="SEPTIC MONITOR" id={P.node} value={isNa(node) ? 'NO SIGNAL' : node.state === 'dead' ? 'OFFLINE' : 'ONLINE'} tone={nodeTone} />
+        <MRow label="LAST CHECK-IN PING" id={P.ping} value={isNa(ent(P.ping).value) ? '--' : ago(ent(P.ping).value.state)} />
+        <MRow label="HIGH-LEVEL ALARM" value="NOT WIRED" tone="na" />
       </MPanel>
     </>
   );
@@ -3073,12 +3072,11 @@ function MThermal({ att }) {
           const st = ent(id).value; const a = st?.attributes ?? {}; const clim = id.startsWith('climate.');
           const zones = [...(o.lo != null ? [[20, o.lo, 'alert']] : []), ...(o.warnLo != null ? [[o.lo ?? 20, o.warnLo, 'warn']] : []), ...(o.hi != null ? [[o.hi, 95, 'alert']] : [])];
           return <MBar label={l} id={id} v={tempOf(id)} min={20} max={95} unit="°" zones={zones} marker={clim && st?.state !== 'off' ? a.temperature : null}
-            sub={clim ? (isNa(st) ? 'NO SIGNAL' : st.state === 'off' ? 'HEAT OFF' : `SET ${a.temperature ?? '--'}° • ${UP(a.hvac_action ?? st.state)}`) : (o.warnLo ? `YELLOW BELOW ${o.warnLo}° • RED BELOW ${o.lo}°` : o.sub)} />;
+            sub={clim ? (isNa(st) ? 'NO SIGNAL' : st.state === 'off' ? 'HEAT OFF' : `SET ${a.temperature ?? '--'}° • ${UP(a.hvac_action ?? st.state)}`) : o.sub} />;
         })}
-        <div class="m-legend"><i data-z="m" /> SET POINT</div>
       </MPanel>
       <MPanel t="HUMIDITY" tone="tan">
-        {S.humidityAll.map(([l, id]) => { const h = S.humidity.find((x) => x[1] === id); return <MBar label={l} id={id} v={num(ent(id).value)} min={0} max={100} unit="%" zones={h ? [[h[2].hi, 100, 'warn']] : []} sub={h ? `YELLOW ABOVE ${h[2].hi}%` : null} />; })}
+        {S.humidityAll.map(([l, id]) => { const h = S.humidity.find((x) => x[1] === id); return <MBar label={l} id={id} v={num(ent(id).value)} min={0} max={100} unit="%" zones={h ? [[h[2].hi, 100, 'warn']] : []} />; })}
       </MPanel>
     </>
   );
@@ -3091,7 +3089,7 @@ function MSafety({ att }) {
   const alarm = ent(F.alarm).value;
   return (
     <>
-      <MHero tone={tone} big={hot.length ? `${hot.map((x) => x[0]).join(' + ')} DETECTED` : tone === 'na' ? 'DETECTOR NOT REPORTING' : 'ALL CLEAR'} sub="LOG CABIN SMOKE / CO DETECTOR" />
+      <MHero tone={tone} big={hot.length ? `${hot.map((x) => x[0]).join(' + ')} DETECTED` : tone === 'na' ? 'DETECTOR NOT REPORTING' : 'ALL CLEAR'} />
       {att}
       <div class="m-pills m-pills-2">{F.big.map(([l, id]) => { const st = ent(id).value; return <div class="m-pill" data-link="" onClick={() => openEntity(id)} data-tone={isNa(st) ? 'na' : st.state === 'on' ? 'alert' : 'ok'}><b>{isNa(st) ? '--' : st.state === 'on' ? 'DETECTED' : 'CLEAR'}</b><span>{l}</span></div>; })}</div>
       <MPanel t="DETECTOR HEALTH" tone="red">
@@ -3169,7 +3167,7 @@ function MStatus({ E }) {
         {E.items.length > 0 && <div class="m-alist">{E.items.map((x) => <div class="s-al" data-link="" onClick={() => openEntity(x.id)} data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}</div>}
       </section>
       <section class="panel">
-        <SecHead title="SUBSYSTEMS • TAP FOR DETAIL" tone="peach" />
+        <SecHead title="SUBSYSTEMS" tone="peach" />
         <div class="m-lamps">
           {keys.map((k) => {
             const tone = E.groups[k] ?? 'na'; const n = E.items.filter((x) => x.g === k).length;
@@ -3232,7 +3230,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v21';
+export const BUILD = 'v22';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
