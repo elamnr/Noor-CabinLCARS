@@ -1451,3 +1451,12 @@ h1, h2 { margin: 0; font-weight: 500; }
 .m-light-one { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 10px; align-items: center; }
 .m-light-one .m-light-h { flex-direction: column; align-items: flex-start; gap: 2px; }
 .m-light-one .m-ltog { border-radius: 24px !important; }
+/* v25 drawn direction marks (no glyphs: iOS renders arrow characters as emoji) */
+.tri { display: inline-block; width: 16px; height: 16px; background: currentColor; }
+.tri[data-d="u"] { clip-path: polygon(50% 10%, 95% 85%, 5% 85%); }
+.tri[data-d="d"] { clip-path: polygon(5% 15%, 95% 15%, 50% 90%); }
+.tri[data-d="l"] { clip-path: polygon(10% 50%, 85% 5%, 85% 95%); }
+.tri[data-d="r"] { clip-path: polygon(15% 5%, 90% 50%, 15% 95%); }
+.tri[data-d="c"] { width: 12px; height: 12px; border-radius: 50%; }
+.m-more { border-radius: 0 26px 26px 0; text-align: right; padding-right: 26px; }
+.m-app .s-cv-ctl > :nth-child(1) small { display: none; }

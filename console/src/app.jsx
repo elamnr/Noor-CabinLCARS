@@ -2637,9 +2637,9 @@ function SCamViewer({ v }) {
         <div class="s-cv-row">{[1, 2, 3, 4].map((n) => <button class="s-cv-b s-cv-lv" data-sel={Math.abs(z.value - n) < 0.05 ? '' : undefined} onClick={() => (n === 1 ? reset() : setZ(n, px.peek(), py.peek()))}>{n}X</button>)}</div>
         <div class="s-cv-h">PAN</div>
         <div class="s-cv-pad">
-          <span /><button class="s-cv-b" onClick={() => pan(0, 0.1)} disabled={z.value <= 1}>▲</button><span />
-          <button class="s-cv-b" onClick={() => pan(0.1, 0)} disabled={z.value <= 1}>◀</button><button class="s-cv-b" onClick={reset}>⦿</button><button class="s-cv-b" onClick={() => pan(-0.1, 0)} disabled={z.value <= 1}>▶</button>
-          <span /><button class="s-cv-b" onClick={() => pan(0, -0.1)} disabled={z.value <= 1}>▼</button><span />
+          <span /><button class="s-cv-b" onClick={() => pan(0, 0.1)} disabled={z.value <= 1} aria-label="Pan up"><i class="tri" data-d="u" /></button><span />
+          <button class="s-cv-b" onClick={() => pan(0.1, 0)} disabled={z.value <= 1} aria-label="Pan left"><i class="tri" data-d="l" /></button><button class="s-cv-b" onClick={reset} aria-label="Centre"><i class="tri" data-d="c" /></button><button class="s-cv-b" onClick={() => pan(-0.1, 0)} disabled={z.value <= 1} aria-label="Pan right"><i class="tri" data-d="r" /></button>
+          <span /><button class="s-cv-b" onClick={() => pan(0, -0.1)} disabled={z.value <= 1} aria-label="Pan down"><i class="tri" data-d="d" /></button><span />
         </div>
         <button class="s-cv-b" onClick={reset} disabled={z.value === 1 && !px.value && !py.value}>RESET VIEW</button>
         <span class="s-cv-fill" />
@@ -2872,7 +2872,7 @@ function MLightsPage() {
   return (
     <div class="m-stack m-page">
       <div class="m-back">
-        <button class="m-btn" onClick={() => (lightsPage.value = false)}>◀ CONTROL</button>
+        <button class="m-btn" onClick={() => (lightsPage.value = false)}>CONTROL</button>
         <h2 style={{ color: 'var(--bl-bone)' }}>ALL LIGHTS</h2>
         <span>{P.flatMap(([, l]) => l).filter(([, id]) => ent(id).value?.state === 'on').length} ON</span>
       </div>
@@ -2923,7 +2923,7 @@ function MControl() {
   const swBad = C.switches.some(([, id]) => st(id)?.state !== 'on');
   return (
     <div class="m-stack m-accs">
-      <MSection k="ILLUMINATION" tone="bone" alert={lightsNa.length > 0} sum={lightsNa.length ? `${lightsNa.length} NOT REPORTING` : `${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}<button class="m-btn m-more" onClick={() => { lightsPage.value = true; try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }}>ALL LIGHTS ▶</button></MSection>
+      <MSection k="ILLUMINATION" tone="bone" alert={lightsNa.length > 0} sum={lightsNa.length ? `${lightsNa.length} NOT REPORTING` : `${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}<button class="m-btn m-more" onClick={() => { lightsPage.value = true; try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }}>ALL LIGHTS</button></MSection>
       <MSection k="LOCKS" tone="violet" alert={lockBad.length > 0} sum={lockBad.length ? (unlocked ? `${unlocked} UNLOCKED` : `${lockBad.length} CHECK LOCK`) : 'ALL LOCKED'}>{C.locks.map((c) => <MLock c={c} />)}</MSection>
       <MSection k="ENVIRONMENTAL" tone="peach" alert={envBad.length > 0} sum={envBad.length ? envBad.join(' • ') : temps.length ? `${Math.round(Math.min(...temps))}°–${Math.round(Math.max(...temps))}°` : '--'}>{C.climate.map((c) => <MClimate c={c} />)}</MSection>
       <MSection k="WATER" tone="sky" alert={swBad} sum={`VALVE ${sw[0]} • TAPE ${sw[1]}`}>{C.switches.map((c) => <MSwitch c={c} />)}</MSection>
@@ -3176,7 +3176,7 @@ function MSubPage({ k, E }) {
   return (
     <div class="m-stack m-page">
       <div class="m-back">
-        <button class="m-btn" onClick={() => { mOpen.value = null; diagOpen.value = false; }}>◀ STATUS</button>
+        <button class="m-btn" onClick={() => { mOpen.value = null; diagOpen.value = false; }}>STATUS</button>
         <h2 style={{ color: `var(--bl-${LAMP_TONE[k]})` }}>{k}</h2>
         <span data-tone={tone}>{{ ok: 'NOMINAL', warn: 'CAUTION', alert: 'ALERT', na: 'NO SIGNAL' }[tone]}</span>
       </div>
@@ -3201,7 +3201,7 @@ function MStatus({ E }) {
         <div class="m-lamps">
           {keys.map((k) => {
             const tone = E.groups[k] ?? 'na'; const n = E.items.filter((x) => x.g === k).length;
-            return <button class="m-lamp" data-tone={tone} onClick={() => { mOpen.value = k; try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }}><span>{k}</span><b>{{ ok: 'NOMINAL', warn: `${n} CAUTION`, alert: `${n} ALERT`, na: 'NO SIGNAL' }[tone]} ▶</b></button>;
+            return <button class="m-lamp" data-tone={tone} onClick={() => { mOpen.value = k; try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }}><span>{k}</span><b>{{ ok: 'NOMINAL', warn: `${n} CAUTION`, alert: `${n} ALERT`, na: 'NO SIGNAL' }[tone]}</b></button>;
           })}
         </div>
       </section>
@@ -3260,7 +3260,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v24';
+export const BUILD = 'v25';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
