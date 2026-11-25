@@ -2738,7 +2738,7 @@ function StatusFrame() {
    Portrait phone console: STATUS / CONTROL / CAMERAS tabs on a bottom LCARS bar.
    Physical controls (locks, water valve, heat tape, heat off) need a second tap within ARM_MS. */
 const mTab = signal((() => { try { return localStorage.getItem('cabinlcars.mobile.tab') || 'STATUS'; } catch { return 'STATUS'; } })());
-function goTab(t) { if (t !== 'CAMERAS') camView.value = null; mTab.value = t; try { localStorage.setItem('cabinlcars.mobile.tab', t); } catch {} try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }
+function goTab(t) { if (t !== 'CAMERAS') camView.value = null; if (t === 'STATUS' && mTab.peek() === 'STATUS') mOpen.value = null; mTab.value = t; try { localStorage.setItem('cabinlcars.mobile.tab', t); } catch {} try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }
 const mOpen = signal(null); // expanded subsystem on STATUS
 const mArmed = signal(null); // { key, until }
 const ARM_MS = 4000;
@@ -2886,10 +2886,269 @@ function MControl() {
   );
 }
 
+/* ---------- PHONE SUBSYSTEM PAGES ----------
+   Each page: verdict hero, what needs attention (with the fix in plain words), purpose-built visuals,
+   and the raw readings folded under ALL READINGS. */
+const TONE_VAR = { ok: 'tan', warn: 'sunflower', alert: 'red', na: 'rust' };
+const isNa = (st) => !st || UNAVAIL.has(st.state);
+/** Horizontal gauge: zones are [from, to, tone]; marker is an optional second value (e.g. a set point). */
+function MBar({ label, id, v, min, max, unit = '', zones = [], marker, sub, tone }) {
+  const pct = (x) => `${((Math.min(max, Math.max(min, x)) - min) / (max - min)) * 100}%`;
+  const t = tone ?? (v == null ? 'na' : (zones.find(([a, b]) => v >= a && v < b)?.[2] ?? 'ok'));
+  return (
+    <div class="m-bar" data-tone={t} data-link={id ? '' : undefined} onClick={id ? () => openEntity(id) : undefined}>
+      <div class="m-bar-h"><span>{label}</span><b>{v == null ? 'NO SIGNAL' : `${Math.round(v)}${unit}`}</b></div>
+      <div class="m-bar-t">
+        {zones.map(([a, b, z]) => <i class="m-bar-z" data-z={z} style={{ left: pct(a), width: `calc(${pct(b)} - ${pct(a)})` }} />)}
+        {v != null && <i class="m-bar-f" style={{ width: pct(v) }} />}
+        {marker != null && <i class="m-bar-m" style={{ left: pct(marker) }} />}
+      </div>
+      {sub && <div class="m-bar-s">{sub}</div>}
+    </div>
+  );
+}
+function MBatt({ label, id }) {
+  return <MBar label={label} id={id} v={num(ent(id).value)} min={0} max={100} unit="%" zones={[[0, 15, 'alert'], [15, 30, 'warn']]} />;
+}
+/** One readable status row: colour bar, label, value, optional sub line. */
+function MRow({ label, value, tone = 'ok', sub, id, children }) {
+  return (
+    <div class="m-row" data-tone={tone} data-link={id ? '' : undefined} onClick={id ? () => openEntity(id) : undefined}>
+      <div class="m-row-m"><span>{label}</span>{sub && <small>{sub}</small>}</div>
+      <b>{value}</b>{children}
+    </div>
+  );
+}
+const binRow = (label, id, on, off, onTone = 'alert', offTone = 'ok') => {
+  const st = ent(id).value;
+  return <MRow label={label} id={id} value={isNa(st) ? 'NO SIGNAL' : st.state === 'on' ? on : off} tone={isNa(st) ? 'na' : st.state === 'on' ? onTone : offTone} />;
+};
+function MHero({ tone, big, sub }) {
+  return <div class="m-hero" data-tone={tone}><b>{big}</b>{sub && <span>{sub}</span>}</div>;
+}
+function MPanel({ t, tone = 'tan', children }) {
+  return <section class="m-pnl"><SecHead title={t} tone={tone} /><div class="m-pnl-b">{children}</div></section>;
+}
+/** What to do about an attention item, in plain words. */
+function fixFor(x) {
+  const id = x.id;
+  if (x.tone === 'na') return 'NOT REPORTING • CHECK POWER AND SIGNAL';
+  if (id.startsWith('lock.')) return x.v === 'JAMMED' ? 'LOCK JAMMED • CHECK THE DOOR' : 'LOCK IT BELOW OR ON THE CONTROL TAB';
+  if (/battery_level$|replace_battery/.test(id)) return 'REPLACE THE BATTERY';
+  if (/back_up_battery/.test(id)) return 'CONNECT THE VALVE BACKUP BATTERY';
+  if (/node_status$/.test(id)) return 'DEVICE OFFLINE • CHECK POWER, THEN RE-INTERVIEW';
+  if (/leak|moisture/.test(id)) return 'WATER DETECTED • CHECK NOW';
+  if (/door|window/.test(id)) return 'CHECK AND CLOSE';
+  if (/temp|climate\./.test(id)) return 'CHECK THE HEAT';
+  if (/smoke|carbon/.test(id)) return 'CALL FOR HELP • CHECK THE CABIN';
+  return 'TAP FOR DEVICE PAGE';
+}
+function MAttention({ k, E }) {
+  const items = E.items.filter((x) => x.g === k);
+  if (!items.length) return null;
+  return (
+    <MPanel t={`NEEDS ATTENTION • ${items.length}`} tone={items.some((x) => x.tone === 'alert') ? 'red' : 'sunflower'}>
+      {items.map((x) => (
+        <MRow label={x.l} value={x.v} tone={x.tone} sub={fixFor(x)} id={x.id} />
+      ))}
+    </MPanel>
+  );
+}
+const diagOpen = signal(false);
+function MDiag({ k }) {
+  const S = useRoom().status;
+  const panels = (S.detail?.[k] ?? []).filter((p) => p.tiles);
+  if (!panels.length) return null;
+  return (
+    <section class="m-acc m-diag" data-open={diagOpen.value ? '' : undefined} style={{ '--acc': 'var(--bl-lilac)' }}>
+      <button class="m-acc-h" aria-expanded={diagOpen.value} onClick={() => (diagOpen.value = !diagOpen.value)}><span class="m-acc-t">ALL READINGS</span><span class="m-acc-s">{panels.reduce((n, p) => n + p.tiles.length, 0)} SENSORS</span><i class="m-acc-i">{diagOpen.value ? '−' : '+'}</i></button>
+      <div class="m-acc-b"><div class="m-acc-in">{panels.map((p) => <div class="m-sub"><div class="m-diag-t">{p.t}</div><div class="s-tiles" style={{ '--cols': 2 }}>{p.tiles.map((t) => <STile t={t} />)}</div></div>)}</div></div>
+    </section>
+  );
+}
+
+function MWater({ att }) {
+  const W = useRoom().status.phone.WATER; const v = W.valve;
+  const valve = ent(v.id).value; const open = valve?.state === 'on';
+  const wet = W.leaks.filter(([, id]) => ent(id).value?.state === 'on');
+  const t = tempOf(W.main.temp);
+  const hero = wet.length ? ['alert', 'LEAK DETECTED', wet.map((x) => x[0]).join(' • ')] : isNa(valve) ? ['na', 'VALVE NOT REPORTING', 'CHECK THE SHUTOFF VALVE'] : open ? ['ok', 'ALL DRY', 'MAIN VALVE OPEN • WATER ON'] : ['warn', 'VALVE CLOSED', 'WATER IS OFF TO THE LOG CABIN'];
+  return (
+    <>
+      <MHero tone={hero[0]} big={hero[1]} sub={hero[2]} />
+      {att}
+      <MPanel t="LEAK SENSORS" tone="sky">
+        <div class="m-pills">{W.leaks.map(([l, id]) => { const st = ent(id).value; return <div class="m-pill" data-link="" onClick={() => openEntity(id)} data-tone={isNa(st) ? 'na' : st.state === 'on' ? 'alert' : 'ok'}><b>{isNa(st) ? '--' : st.state === 'on' ? 'WET' : 'DRY'}</b><span>{l}</span></div>; })}</div>
+        {W.leaks.filter((x) => x[2]).map(([l, , b]) => <MBatt label={`${l} SENSOR BATTERY`} id={b} />)}
+      </MPanel>
+      <MPanel t="MAIN SHUTOFF VALVE" tone="sky">
+        <MRow label="VALVE" id={v.id} value={isNa(valve) ? 'NO SIGNAL' : open ? 'OPEN' : 'CLOSED'} tone={isNa(valve) ? 'na' : open ? 'ok' : 'warn'} sub="OPEN OR CLOSE IT ON THE CONTROL TAB" />
+        {binRow('AC POWER', v.mains, 'DISCONNECTED', 'CONNECTED')}
+        {binRow('BACKUP BATTERY', v.backup, 'DISCONNECTED', 'CONNECTED', 'warn')}
+        {binRow('VALVE JAMMED', v.jammed, 'JAMMED', 'NO')}
+      </MPanel>
+      <MPanel t="WATER MAIN • FREEZE WATCH" tone="sky">
+        <MBar label="PIPE AIR TEMP" id={W.main.temp} v={t} min={20} max={70} unit="°F" zones={[[20, 35, 'alert'], [35, 40, 'warn']]} sub="YELLOW BELOW 40° • RED BELOW 35°" />
+        {binRow('HEAT TAPE', W.main.tape, 'ON', 'OFF', 'ok', 'warn')}
+        {binRow('MOISTURE AT MAIN', W.main.moisture, 'WET', 'DRY')}
+        <MBatt label="TEMP SENSOR BATTERY" id={W.main.battery} />
+      </MPanel>
+    </>
+  );
+}
+
+const pumpHist = signal({ at: 0, rows: [], err: null });
+function usePumpHistory(id) {
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      if (Date.now() - pumpHist.peek().at < 5 * 60e3) return;
+      try { const end = new Date(); const r = await getHistory([id], new Date(+end - 864e5), end); if (live) pumpHist.value = { at: Date.now(), rows: r[id] ?? [], err: null }; }
+      catch (e) { if (live) pumpHist.value = { at: Date.now(), rows: [], err: String(e?.message ?? e) }; }
+    };
+    load(); const iv = setInterval(load, 5 * 60e3);
+    return () => { live = false; clearInterval(iv); };
+  }, [id]);
+  return pumpHist.value;
+}
+function MSeptic({ att }) {
+  const P = useRoom().status.phone.SEPTIC;
+  const h = usePumpHistory(P.pump);
+  const pump = ent(P.pump).value; const node = ent(P.node).value; const runs = ent(P.runs).value;
+  const end = Date.now(), start = end - 864e5;
+  const doses = []; let on = null;
+  for (const r of h.rows) { if (r.s === 'on' && on == null) on = r.t; else if (r.s !== 'on' && on != null) { doses.push([on, r.t]); on = null; } }
+  if (on != null) doses.push([on, end]);
+  const last = doses.length ? doses[doses.length - 1][0] : null;
+  const gaps = doses.slice(1).map((d, i) => (d[0] - doses[i][0]) / 60e3);
+  const avgGap = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null;
+  const nodeTone = isNa(node) ? 'na' : node.state === 'dead' ? 'alert' : 'ok';
+  return (
+    <>
+      <MHero tone={nodeTone === 'ok' ? 'ok' : nodeTone} big={isNa(runs) ? '--' : `${runs.state} DOSES TODAY`} sub={pump?.state === 'on' ? 'PUMP RUNNING NOW' : last ? `LAST DOSE ${ago(last / 1000)}` : 'NO DOSES IN THE LAST 24 H'} />
+      {att}
+      <MPanel t="PUMP • LAST 24 HOURS" tone="peach">
+        <div class="m-strip" data-link="" onClick={() => openEntity(P.pump)}>
+          {doses.map(([a, b]) => <i style={{ left: `${((a - start) / 864e5) * 100}%`, width: `max(2px, ${((b - a) / 864e5) * 100}%)` }} />)}
+          {[0, 6, 12, 18, 24].map((x) => <u style={{ left: `${(x / 24) * 100}%` }} />)}
+        </div>
+        <div class="m-strip-ax"><span>24 H AGO</span><span>18 H</span><span>12 H</span><span>6 H</span><span>NOW</span></div>
+        <div class="m-kv"><span>DOSES (24 H)</span><b>{h.at ? doses.length : '--'}</b><span>AVERAGE GAP</span><b>{avgGap != null ? `${avgGap} MIN` : '--'}</b></div>
+        {h.err && <div class="m-note">HISTORY UNAVAILABLE • {UP(h.err)}</div>}
+      </MPanel>
+      <MPanel t="MONITOR" tone="peach">
+        <MRow label="SEPTIC MONITOR" id={P.node} value={isNa(node) ? 'NO SIGNAL' : node.state === 'dead' ? 'OFFLINE' : 'ONLINE'} tone={nodeTone} sub="OFFLINE USUALLY MEANS THE SEPTIC PANEL LOST POWER" />
+        <MRow label="LAST CHECK-IN PING" id={P.ping} value={isNa(ent(P.ping).value) ? '--' : ago(ent(P.ping).value.state)} sub="PINGED AT 06:00 AND 18:00" />
+        <MRow label="HIGH-LEVEL ALARM" value="NOT WIRED" tone="na" sub={P.alarmNote} />
+      </MPanel>
+    </>
+  );
+}
+
+function MThermal({ att }) {
+  const S = useRoom().status;
+  const worst = S.thermal.reduce((w, [, id, o]) => { const t = meterTone(tempOf(id), o); return rank(t) > rank(w) ? t : w; }, 'ok');
+  const lowest = S.thermal.slice(0, 4).map(([l, id]) => [l, tempOf(id)]).filter(([, v]) => v != null).sort((a, b) => a[1] - b[1])[0];
+  return (
+    <>
+      <MHero tone={worst} big={worst === 'ok' ? 'NO FREEZE RISK' : worst === 'warn' ? 'APPROACHING FREEZING' : worst === 'alert' ? 'FREEZE RISK' : 'SENSOR OFFLINE'} sub={lowest ? `COLDEST PLUMBED SPACE • ${lowest[0]} ${Math.round(lowest[1])}°F` : ''} />
+      {att}
+      <MPanel t="FREEZE WATCH" tone="tan">
+        {S.thermal.map(([l, id, o]) => {
+          const st = ent(id).value; const a = st?.attributes ?? {}; const clim = id.startsWith('climate.');
+          const zones = [...(o.lo != null ? [[20, o.lo, 'alert']] : []), ...(o.warnLo != null ? [[o.lo ?? 20, o.warnLo, 'warn']] : []), ...(o.hi != null ? [[o.hi, 95, 'alert']] : [])];
+          return <MBar label={l} id={id} v={tempOf(id)} min={20} max={95} unit="°" zones={zones} marker={clim && st?.state !== 'off' ? a.temperature : null}
+            sub={clim ? (isNa(st) ? 'NO SIGNAL' : st.state === 'off' ? 'HEAT OFF' : `SET ${a.temperature ?? '--'}° • ${UP(a.hvac_action ?? st.state)}`) : (o.warnLo ? `YELLOW BELOW ${o.warnLo}° • RED BELOW ${o.lo}°` : o.sub)} />;
+        })}
+        <div class="m-legend"><i data-z="m" /> SET POINT</div>
+      </MPanel>
+      <MPanel t="HUMIDITY" tone="tan">
+        {S.humidityAll.map(([l, id]) => { const h = S.humidity.find((x) => x[1] === id); return <MBar label={l} id={id} v={num(ent(id).value)} min={0} max={100} unit="%" zones={h ? [[h[2].hi, 100, 'warn']] : []} sub={h ? `YELLOW ABOVE ${h[2].hi}%` : null} />; })}
+      </MPanel>
+    </>
+  );
+}
+
+function MSafety({ att }) {
+  const F = useRoom().status.phone.SAFETY;
+  const hot = F.big.filter(([, id]) => ent(id).value?.state === 'on');
+  const wet = F.moisture.filter(([, id]) => ent(id).value?.state === 'on');
+  const tone = hot.length ? 'alert' : wet.length ? 'alert' : F.big.some(([, id]) => isNa(ent(id).value)) ? 'na' : 'ok';
+  const alarm = ent(F.alarm).value;
+  return (
+    <>
+      <MHero tone={tone} big={hot.length ? `${hot.map((x) => x[0]).join(' + ')} DETECTED` : wet.length ? 'MOISTURE DETECTED' : tone === 'na' ? 'DETECTOR NOT REPORTING' : 'ALL CLEAR'} sub="LOG CABIN SMOKE / CO DETECTOR" />
+      {att}
+      <div class="m-pills m-pills-2">{F.big.map(([l, id]) => { const st = ent(id).value; return <div class="m-pill" data-link="" onClick={() => openEntity(id)} data-tone={isNa(st) ? 'na' : st.state === 'on' ? 'alert' : 'ok'}><b>{isNa(st) ? '--' : st.state === 'on' ? 'DETECTED' : 'CLEAR'}</b><span>{l}</span></div>; })}</div>
+      <MPanel t="MOISTURE ALARMS" tone="red">{F.moisture.map(([l, id]) => binRow(l, id, 'WET', 'DRY'))}</MPanel>
+      <MPanel t="DETECTOR HEALTH" tone="red">
+        <MBatt label={F.battery[0]} id={F.battery[1]} />
+        <MRow label="WYZE HOME MONITORING" id={F.alarm} value={isNa(alarm) ? 'NO SIGNAL' : UP(alarm.state)} tone={isNa(alarm) ? 'na' : alarm.state === 'triggered' ? 'alert' : 'ok'} />
+      </MPanel>
+    </>
+  );
+}
+
+function MAccess({ att }) {
+  const S = useRoom().status; const C = S.controls; const A = S.access;
+  const unlocked = C.locks.filter(([, id]) => ent(id).value?.state === 'unlocked');
+  const open = A.openings.filter((o) => ent(o.id).value?.state === 'on');
+  const tone = C.locks.some(([, id]) => ent(id).value?.state === 'jammed') ? 'alert' : unlocked.length || open.length ? 'warn' : 'ok';
+  return (
+    <>
+      <MHero tone={tone} big={tone === 'ok' ? 'SECURE' : [unlocked.length && `${unlocked.length} UNLOCKED`, open.length && `${open.length} OPEN`].filter(Boolean).join(' • ')} sub={tone === 'ok' ? 'BOTH LOCKS LOCKED • DOOR AND WINDOW CLOSED' : [...unlocked.map((x) => x[0]), ...open.map((o) => o.l)].join(' • ')} />
+      {att}
+      <MPanel t="LOCKS" tone="violet">{C.locks.map((c) => <MLock c={c} />)}</MPanel>
+      <MPanel t="DOORS AND WINDOWS" tone="violet">
+        {A.openings.map((o) => { const st = ent(o.id).value; return <MRow label={o.l} id={o.id} value={isNa(st) ? 'NO SIGNAL' : st.state === 'on' ? 'OPEN' : 'CLOSED'} tone={isNa(st) ? 'na' : st.state === 'on' ? 'warn' : 'ok'} sub={isNa(st) ? '' : since(st)} />; })}
+      </MPanel>
+      <MPanel t="BATTERIES" tone="violet">{S.phone.batteries.map(([l, id]) => <MBatt label={l} id={id} />)}</MPanel>
+    </>
+  );
+}
+
+function MNetwork({ att }) {
+  const N = useRoom().status.network;
+  const nodes = N.zwave.flatMap(([b, list]) => list.map(([l, id]) => ({ b, l, id, st: ent(id).value })));
+  const dead = nodes.filter((n) => nodeTone(n.st) !== 'ok');
+  const down = N.links.filter((x) => ent(x.id).value?.state !== 'on');
+  const tone = down.length ? 'alert' : dead.length ? 'warn' : 'ok';
+  return (
+    <>
+      <MHero tone={tone} big={down.length ? `${down.length} LINK${down.length > 1 ? 'S' : ''} DOWN` : 'CONNECTED'} sub={`${nodes.length - dead.length} OF ${nodes.length} Z-WAVE DEVICES RESPONDING`} />
+      {att}
+      <MPanel t="LINKS" tone="ice">{N.links.map((x) => { const st = ent(x.id).value; return <MRow label={x.l} id={x.id} value={isNa(st) ? 'NO SIGNAL' : st.state === 'on' ? 'ONLINE' : 'OFFLINE'} tone={isNa(st) ? 'na' : st.state === 'on' ? 'ok' : 'alert'} />; })}</MPanel>
+      <MPanel t="Z-WAVE DEVICES" tone="ice">
+        {N.zwave.map(([b, list]) => (
+          <div class="m-nodes"><div class="m-diag-t">{b}</div><div class="m-node-g">{list.map(([l, id]) => { const st = ent(id).value; return <span class="m-node" data-tone={nodeTone(st)} data-link="" onClick={() => openEntity(id)}><i />{l}</span>; })}</div></div>
+        ))}
+      </MPanel>
+      <MPanel t="CABIN CONTROL IPAD" tone="ice"><MBatt label="BATTERY" id={N.ipad.battery} /></MPanel>
+    </>
+  );
+}
+
+const M_PAGES = { WATER: MWater, SEPTIC: MSeptic, THERMAL: MThermal, SAFETY: MSafety, ACCESS: MAccess, NETWORK: MNetwork };
+function MSubPage({ k, E }) {
+  const Page = M_PAGES[k];
+  const tone = E.groups[k] ?? 'na';
+  return (
+    <div class="m-stack m-page">
+      <div class="m-back">
+        <button class="m-btn" onClick={() => { mOpen.value = null; diagOpen.value = false; }}>◀ STATUS</button>
+        <h2 style={{ color: `var(--bl-${LAMP_TONE[k]})` }}>{k}</h2>
+        <span data-tone={tone}>{{ ok: 'NOMINAL', warn: 'CAUTION', alert: 'ALERT', na: 'NO SIGNAL' }[tone]}</span>
+      </div>
+      <Page att={<MAttention k={k} E={E} />} />
+      <MDiag k={k} />
+    </div>
+  );
+}
+
 function MStatus({ E }) {
   const S = useRoom().status;
   const keys = ['WATER', 'SEPTIC', 'THERMAL', 'SAFETY', 'ACCESS', 'NETWORK'];
-  const tilesOf = (k) => { const seen = new Set(); return [...(S.groups.find((g) => g.key === k)?.tiles ?? []), ...(S.detail?.[k] ?? []).flatMap((p) => p.tiles ?? [])].filter((t) => !seen.has(t.id) && seen.add(t.id)); };
+  if (mOpen.value && M_PAGES[mOpen.value]) return <MSubPage k={mOpen.value} E={E} />;
   return (
     <div class="m-stack">
       <section class="panel">
@@ -2897,18 +3156,17 @@ function MStatus({ E }) {
         {E.items.length > 0 && <div class="m-alist">{E.items.map((x) => <div class="s-al" data-link="" onClick={() => openEntity(x.id)} data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}</div>}
       </section>
       <section class="panel">
-        <SecHead title="TEMPERATURES" tone="tan" />
-        <div class="m-temps">{S.thermal.map(([l, id, o]) => { const v = tempOf(id); return <div class="m-temp" data-link="" onClick={() => openEntity(id)} data-tone={meterTone(v, o)}><span>{l}</span><b>{v == null ? '--' : `${Math.round(v)}°`}</b></div>; })}</div>
-      </section>
-      <section class="panel">
-        <SecHead title="SUBSYSTEMS" tone="peach" />
+        <SecHead title="SUBSYSTEMS • TAP FOR DETAIL" tone="peach" />
         <div class="m-lamps">
           {keys.map((k) => {
             const tone = E.groups[k] ?? 'na'; const n = E.items.filter((x) => x.g === k).length;
-            return <button class="m-lamp" data-tone={tone} data-cur={mOpen.value === k ? '' : undefined} onClick={() => (mOpen.value = mOpen.value === k ? null : k)}><span>{k}</span><b>{{ ok: 'NOMINAL', warn: `${n} CAUTION`, alert: `${n} ALERT`, na: 'NO SIGNAL' }[tone]}</b></button>;
+            return <button class="m-lamp" data-tone={tone} onClick={() => { mOpen.value = k; try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }}><span>{k}</span><b>{{ ok: 'NOMINAL', warn: `${n} CAUTION`, alert: `${n} ALERT`, na: 'NO SIGNAL' }[tone]} ▶</b></button>;
           })}
         </div>
-        {mOpen.value && <div class="m-sub"><SecHead title={mOpen.value} tone={LAMP_TONE[mOpen.value]} /><div class="s-tiles" style={{ '--cols': 2 }}>{tilesOf(mOpen.value).map((t) => <STile t={t} />)}</div></div>}
+      </section>
+      <section class="panel">
+        <SecHead title="TEMPERATURES" tone="tan" />
+        <div class="m-temps">{S.thermal.map(([l, id, o]) => { const v = tempOf(id); return <div class="m-temp" data-link="" onClick={() => openEntity(id)} data-tone={meterTone(v, o)}><span>{l}</span><b>{v == null ? '--' : `${Math.round(v)}°`}</b></div>; })}</div>
       </section>
     </div>
   );
@@ -2925,10 +3183,10 @@ function MCameras() {
 function useFitHeight() {
   const ref = useRef(null); const h = useSignal(null);
   useEffect(() => {
-    const fit = () => { const el = ref.current; if (!el) return; const top = el.getBoundingClientRect().top + (window.scrollY || 0); const v = Math.round((window.visualViewport?.height ?? window.innerHeight) - Math.max(0, top)); if (v > 200 && (v !== h.peek()?.v || (top < 1) !== h.peek()?.top0)) h.value = { v, top0: top < 1 }; };
-    fit(); const ts = [250, 1000, 2500, 5000].map((t) => setTimeout(fit, t));
+    const fit = () => { const el = ref.current; if (!el) return; const top = el.getBoundingClientRect().top + (window.scrollY || 0); const v = Math.round(window.innerHeight - Math.max(0, top)); if (v > 200 && (v !== h.peek()?.v || (top < 1) !== h.peek()?.top0)) h.value = { v, top0: top < 1 }; };
+    fit(); const ts = [250, 1000, 2500].map((t) => setTimeout(fit, t)); const iv = setInterval(fit, 1000);
     window.addEventListener('resize', fit); window.visualViewport?.addEventListener('resize', fit);
-    return () => { ts.forEach(clearTimeout); window.removeEventListener('resize', fit); window.visualViewport?.removeEventListener('resize', fit); };
+    return () => { ts.forEach(clearTimeout); clearInterval(iv); window.removeEventListener('resize', fit); window.visualViewport?.removeEventListener('resize', fit); };
   }, []);
   return [ref, h.value];
 }
@@ -2961,7 +3219,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v18';
+export const BUILD = 'v19';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

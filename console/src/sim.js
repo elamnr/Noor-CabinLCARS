@@ -410,6 +410,12 @@ export function simulate(seed) {
       // Placeholder thermostat history for simulation only: 10-minute samples, a setback overnight, heat cycles.
       const out = {}; const t0 = +start, t1 = +end;
       for (const id of ids) {
+        if (!id.startsWith('climate.')) {
+          // switches: simulated pump doses, ~36 s every ~41 min
+          const rows = [{ t: t0, s: 'off', a: {} }];
+          for (let t = t0 + 600e3; t < t1; t += 41 * 60e3 + ((t / 1e3) % 7) * 60e3) { rows.push({ t, s: 'on', a: {} }, { t: t + 36e3, s: 'off', a: {} }); }
+          out[id] = rows; continue;
+        }
         const cur0 = seed[id]?.attributes?.current_temperature ?? 66, set0 = seed[id]?.attributes?.temperature ?? 65;
         const rows = []; let cur = cur0 - 2; let heat = false;
         for (let t = t0; t <= t1; t += 600e3) {

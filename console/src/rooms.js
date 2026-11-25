@@ -529,6 +529,35 @@ STATUS.network = {
     ['SITE / UTILITY', [['SEPTIC MONITOR', 'sensor.septic_monitor_node_status', 'mains'], ['WATER MAIN SENSOR', 'sensor.water_main_temp_sensor_node_status', 'battery'], ['HEAT TAPE OUTLET', 'sensor.outdoor_plug_1_node_status', 'mains'], ['ZOOZ OUTLET 2', 'sensor.zooz_outdoor_outlets_node_status', 'mains']]],
   ],
 };
+// PHONE SUBSYSTEM PAGES (room: mobile): purpose-built glance views. Raw tiles stay under DIAGNOSTICS (STATUS.detail).
+// Every id here also appears in STATUS.detail, so alerts and subscriptions are unchanged.
+STATUS.phone = {
+  WATER: {
+    valve: { id: 'switch.log_cabin_emergency_water_shutoff', jammed: 'binary_sensor.log_cabin_emergency_water_shutoff_valve_jammed', mains: 'binary_sensor.log_cabin_emergency_water_shutoff_ac_mains_disconnected', backup: 'binary_sensor.log_cabin_emergency_water_shutoff_back_up_battery_disconnected', node: 'sensor.log_cabin_emergency_water_shutoff_node_status' },
+    leaks: [
+      ['LOG BATH', 'binary_sensor.water_leak_sensor_log_cabin_bathroom_water_leak_detected', 'sensor.water_leak_sensor_log_cabin_bathroom_battery_level'],
+      ['LOG KITCHEN', 'binary_sensor.water_leak_sensor_log_cabin_kitchen_water_leak_detected', 'sensor.water_leak_sensor_log_cabin_kitchen_battery_level'],
+      ['AT VALVE', 'binary_sensor.log_cabin_emergency_water_shutoff_water_leak_detected', null],
+    ],
+    main: { temp: 'sensor.water_main_temp_sensor_air_temperature', tape: 'switch.outdoor_plug_1', moisture: 'binary_sensor.water_main_temp_sensor_moisture_alarm', battery: 'sensor.water_main_temp_sensor_battery_level' },
+  },
+  SEPTIC: {
+    pump: 'switch.septic_monitor', runs: 'counter.septic_daily_run_counter', node: 'sensor.septic_monitor_node_status', ping: 'button.septic_monitor_ping',
+    // High-level alarm input is not wired yet (relay pending), so the console says so instead of showing a false "OK".
+    alarmNote: 'HIGH-LEVEL ALARM IS NOT MONITORED YET • RELAY INSTALL PENDING',
+  },
+  SAFETY: {
+    big: [['SMOKE', 'binary_sensor.log_cabin_smoke_co_sensor_smoke_detected'], ['CARBON MONOXIDE', 'binary_sensor.log_cabin_smoke_co_sensor_carbon_monoxide_detected']],
+    moisture: [['CRAWLSPACE', 'binary_sensor.crawlspace_temp_sensor_moisture_alarm'], ['WATER MAIN', 'binary_sensor.water_main_temp_sensor_moisture_alarm']],
+    battery: ['SMOKE / CO DETECTOR', 'sensor.log_cabin_smoke_co_sensor_battery_level'],
+    alarm: 'alarm_control_panel.wyze_home_monitoring_system',
+  },
+  batteries: [
+    ['LOG CABIN LOCK', 'sensor.yale_assure_lock_log_cabin_battery_level'], ['BUNK HOUSE LOCK', 'sensor.bunk_house_yale_assure_lock_bunkhouse_battery_level'],
+    ['BUNK DOOR SENSOR', 'sensor.bunk_house_front_door_battery_level'], ['COUCH WINDOW SENSOR', 'sensor.bunkhouse_couch_window_sensor_battery_level'],
+  ],
+};
+
 // PHONE CONTROLS (room: mobile). Every action that changes something physical needs a second tap within 4 s.
 STATUS.controls = {
   lights: [['LOG CABIN ACCENT LIGHTS', 'light.log_cabin_ball_lights'], ['BUNK HOUSE LIGHTS', 'light.all_bunk_house_lights'], ['STRING LIGHTS', 'light.string_lights']],
