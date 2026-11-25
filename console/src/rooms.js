@@ -307,14 +307,15 @@ export const STATUS = {
       { l: 'ZIGBEE COORDINATOR', id: 'binary_sensor.slzb_mrw10_internet', map: LINK, bad: ['off'] },
     ] },
   ],
-  // THERMAL meters: freeze-critical spaces first. lo = alert below, hi = alert above.
+  // THERMAL meters: freeze-critical spaces first. warnLo = caution (yellow) below, lo = alert (red) below, hi = alert above.
+  // Thresholds match automation "Cabin Freeze Monitor". Bunk House has no plumbing and is heat-off when vacant: no low colors.
   thermal: [
-    ['WATER MAIN', 'sensor.water_main_temp_sensor_air_temperature', { lo: 35, sub: 'OOD HOUSE' }],
-    ['CRAWLSPACE', 'sensor.crawlspace_temp_sensor_air_temperature', { lo: 40, sub: 'LOG CABIN' }],
-    ['LOG MAIN', 'climate.log_cabin_main_thermostat', { lo: 50, hi: 85 }],
-    ['LOG FIREPLACE', 'climate.log_cabin_fireplace_thermostat', { lo: 50, hi: 85 }],
-    ['BUNK MAIN', 'climate.bunk_main_thermostat', { lo: 50, hi: 85 }],
-    ['BUNK BATH', 'climate.bunk_bath_thermostat_thermostat', { lo: 50, hi: 85 }],
+    ['WATER MAIN', 'sensor.water_main_temp_sensor_air_temperature', { warnLo: 40, lo: 35, sub: 'OOD HOUSE' }],
+    ['CRAWLSPACE', 'sensor.crawlspace_temp_sensor_air_temperature', { warnLo: 40, lo: 35, sub: 'LOG CABIN' }],
+    ['LOG MAIN', 'climate.log_cabin_main_thermostat', { warnLo: 50, lo: 45, hi: 85 }],
+    ['LOG FIREPLACE', 'climate.log_cabin_fireplace_thermostat', { warnLo: 50, lo: 45, hi: 85 }],
+    ['BUNK MAIN', 'climate.bunk_main_thermostat', { hi: 85 }],
+    ['BUNK BATH', 'climate.bunk_bath_thermostat_thermostat', { hi: 85 }],
   ],
   humidity: [
     ['LOG CABIN', 'sensor.shelly_humidity_and_temp_sensor_log_cabin_humidity', { hi: 70 }],

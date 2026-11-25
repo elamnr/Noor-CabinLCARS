@@ -1346,3 +1346,8 @@ h1, h2 { margin: 0; font-weight: 500; }
 .m-bri { position: relative; overflow: hidden; }
 .m-bri i { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--bl-sunflower); transition: width 200ms; }
 .m-card[data-lit] { border-left-color: var(--bl-sunflower); }
+/* v18 freeze caution */
+.tm[data-warn] .tm-v, .tm[data-warn] .tm-s { color: var(--bl-sunflower); }
+.m-temp[data-tone="warn"] { background: var(--bl-sunflower); }
+.m-temp[data-tone="warn"] span, .m-temp[data-tone="warn"] b { color: #000; }
+.m-temp[data-tone="alert"] b { animation: blink var(--bl-dur-blink) steps(1, end) infinite; }

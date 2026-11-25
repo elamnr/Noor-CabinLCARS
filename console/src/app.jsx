@@ -1892,18 +1892,18 @@ function KCamera({ visitor }) {
 }
 
 /* TELEMETRY: live house readings as LCARS meters + a solar track, with a stepped scan animation */
-function Meter({ label, value, unit, min, max, fn, alert, sub, id }) {
+function Meter({ label, value, unit, min, max, fn, alert, warn, sub, id }) {
   const segs = 14;
   const v = value == null || Number.isNaN(+value) ? null : +value;
   const lit = v == null ? 0 : Math.max(1, Math.round(((Math.min(max, Math.max(min, v)) - min) / (max - min)) * segs));
   return (
-    <div class="tm" data-link={id ? '' : undefined} onClick={id ? () => openEntity(id) : undefined} data-alert={alert ? '' : undefined} data-na={v == null ? '' : undefined}>
+    <div class="tm" data-link={id ? '' : undefined} onClick={id ? () => openEntity(id) : undefined} data-alert={alert ? '' : undefined} data-warn={warn && !alert ? '' : undefined} data-na={v == null ? '' : undefined}>
       <b class="tm-v">{v == null ? '--' : Math.round(v)}<small>{unit}</small></b>
       <div class="tm-bar" style={{ '--n': segs }}>
         {Array.from({ length: segs }, (_, i) => {
           const on = i < lit;
           const at = min + ((i + 0.5) / segs) * (max - min);
-          return <i data-on={on ? '' : undefined} data-top={on && i === lit - 1 ? '' : undefined} style={on ? { background: alert ? 'var(--bl-red)' : fn ? fn(at) : 'var(--bl-tan)' } : undefined} />;
+          return <i data-on={on ? '' : undefined} data-top={on && i === lit - 1 ? '' : undefined} style={on ? { background: alert ? 'var(--bl-red)' : warn ? 'var(--bl-sunflower)' : fn ? fn(at) : 'var(--bl-tan)' } : undefined} />;
         })}
         <span class="tm-scan" />
       </div>
@@ -2110,7 +2110,7 @@ function tempOf(id) {
   if (!st || UNAVAIL.has(st.state)) return null;
   return id.startsWith('climate.') ? st.attributes?.current_temperature ?? null : num(st);
 }
-function meterTone(v, o) { return v == null ? 'na' : (o.lo != null && v < o.lo) || (o.hi != null && v > o.hi) ? 'alert' : 'ok'; }
+function meterTone(v, o) { return v == null ? 'na' : (o.lo != null && v < o.lo) || (o.hi != null && v > o.hi) ? 'alert' : o.warnLo != null && v < o.warnLo ? 'warn' : 'ok'; }
 /** Every alert and warning on the panel, for the header count, the side lamps and the ALERTS list. */
 function useStatusEval(S) {
   const items = [];
@@ -2166,8 +2166,8 @@ function SThermal() {
         {S.thermal.map(([l, id, o]) => {
           const v = tempOf(id); const st = ent(id).value; const a = st?.attributes ?? {};
           const tone = meterTone(v, o);
-          const sub = id.startsWith('climate.') ? (st && !UNAVAIL.has(st.state) ? `SET ${a.temperature ?? '--'}° • ${UP(a.hvac_action ?? st.state)}` : 'NO SIGNAL') : (tone === 'alert' ? `BELOW ${o.lo}°` : o.sub);
-          return <Meter id={id} label={l} unit="°" value={v} min={20} max={90} fn={tempColor} alert={tone === 'alert'} sub={sub} />;
+          const sub = id.startsWith('climate.') ? (st && !UNAVAIL.has(st.state) ? `SET ${a.temperature ?? '--'}° • ${UP(a.hvac_action ?? st.state)}` : 'NO SIGNAL') : (tone === 'alert' ? `BELOW ${o.lo}°` : tone === 'warn' ? `BELOW ${o.warnLo}°` : o.sub);
+          return <Meter id={id} label={l} unit="°" value={v} min={20} max={90} fn={tempColor} alert={tone === 'alert'} warn={tone === 'warn'} sub={sub} />;
         })}
       </div>
     </section>
@@ -2961,7 +2961,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v17';
+export const BUILD = 'v18';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
