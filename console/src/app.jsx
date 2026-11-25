@@ -2937,7 +2937,7 @@ function fixFor(x) {
   if (/battery_level$|replace_battery/.test(id)) return 'REPLACE THE BATTERY';
   if (/back_up_battery/.test(id)) return 'CONNECT THE VALVE BACKUP BATTERY';
   if (/node_status$/.test(id)) return 'DEVICE OFFLINE • CHECK POWER, THEN RE-INTERVIEW';
-  if (/leak|moisture/.test(id)) return 'WATER DETECTED • CHECK NOW';
+  if (/leak/.test(id)) return 'WATER DETECTED • CHECK NOW';
   if (/door|window/.test(id)) return 'CHECK AND CLOSE';
   if (/temp|climate\./.test(id)) return 'CHECK THE HEAT';
   if (/smoke|carbon/.test(id)) return 'CALL FOR HELP • CHECK THE CABIN';
@@ -2990,7 +2990,6 @@ function MWater({ att }) {
       <MPanel t="WATER MAIN • FREEZE WATCH" tone="sky">
         <MBar label="PIPE AIR TEMP" id={W.main.temp} v={t} min={20} max={70} unit="°F" zones={[[20, 35, 'alert'], [35, 40, 'warn']]} sub="YELLOW BELOW 40° • RED BELOW 35°" />
         {binRow('HEAT TAPE', W.main.tape, 'ON', 'OFF', 'ok', 'warn')}
-        {binRow('MOISTURE AT MAIN', W.main.moisture, 'WET', 'DRY')}
         <MBatt label="TEMP SENSOR BATTERY" id={W.main.battery} />
       </MPanel>
     </>
@@ -3072,15 +3071,13 @@ function MThermal({ att }) {
 function MSafety({ att }) {
   const F = useRoom().status.phone.SAFETY;
   const hot = F.big.filter(([, id]) => ent(id).value?.state === 'on');
-  const wet = F.moisture.filter(([, id]) => ent(id).value?.state === 'on');
-  const tone = hot.length ? 'alert' : wet.length ? 'alert' : F.big.some(([, id]) => isNa(ent(id).value)) ? 'na' : 'ok';
+  const tone = hot.length ? 'alert' : F.big.some(([, id]) => isNa(ent(id).value)) ? 'na' : 'ok';
   const alarm = ent(F.alarm).value;
   return (
     <>
-      <MHero tone={tone} big={hot.length ? `${hot.map((x) => x[0]).join(' + ')} DETECTED` : wet.length ? 'MOISTURE DETECTED' : tone === 'na' ? 'DETECTOR NOT REPORTING' : 'ALL CLEAR'} sub="LOG CABIN SMOKE / CO DETECTOR" />
+      <MHero tone={tone} big={hot.length ? `${hot.map((x) => x[0]).join(' + ')} DETECTED` : tone === 'na' ? 'DETECTOR NOT REPORTING' : 'ALL CLEAR'} sub="LOG CABIN SMOKE / CO DETECTOR" />
       {att}
       <div class="m-pills m-pills-2">{F.big.map(([l, id]) => { const st = ent(id).value; return <div class="m-pill" data-link="" onClick={() => openEntity(id)} data-tone={isNa(st) ? 'na' : st.state === 'on' ? 'alert' : 'ok'}><b>{isNa(st) ? '--' : st.state === 'on' ? 'DETECTED' : 'CLEAR'}</b><span>{l}</span></div>; })}</div>
-      <MPanel t="MOISTURE ALARMS" tone="red">{F.moisture.map(([l, id]) => binRow(l, id, 'WET', 'DRY'))}</MPanel>
       <MPanel t="DETECTOR HEALTH" tone="red">
         <MBatt label={F.battery[0]} id={F.battery[1]} />
         <MRow label="WYZE HOME MONITORING" id={F.alarm} value={isNa(alarm) ? 'NO SIGNAL' : UP(alarm.state)} tone={isNa(alarm) ? 'na' : alarm.state === 'triggered' ? 'alert' : 'ok'} />
@@ -3219,7 +3216,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v19';
+export const BUILD = 'v20';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

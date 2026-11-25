@@ -283,7 +283,6 @@ export const STATUS = {
       { l: 'VALVE JAMMED', id: 'binary_sensor.log_cabin_emergency_water_shutoff_valve_jammed', map: { on: 'JAMMED', off: 'NO' }, bad: ['on'] },
       { l: 'VALVE BACKUP BATTERY', id: 'binary_sensor.log_cabin_emergency_water_shutoff_back_up_battery_disconnected', map: { on: 'DISCONNECTED', off: 'CONNECTED' }, warn: ['on'] },
       { l: 'WATER MAIN HEAT TAPE', id: 'switch.outdoor_plug_1', map: { on: 'ON', off: 'OFF' }, warn: ['off'] },
-      { l: 'WATER MAIN MOISTURE', id: 'binary_sensor.water_main_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
     ] },
     { key: 'SEPTIC', tone: 'peach', tiles: [
       { l: 'SEPTIC MONITOR', id: 'sensor.septic_monitor_node_status', map: { alive: 'ONLINE', dead: 'OFFLINE', asleep: 'ASLEEP' }, bad: ['dead'] },
@@ -292,7 +291,6 @@ export const STATUS = {
     { key: 'SAFETY', tone: 'red', tiles: [
       { l: 'SMOKE • LOG CABIN', id: 'binary_sensor.log_cabin_smoke_co_sensor_smoke_detected', map: DET, bad: ['on'] },
       { l: 'CO • LOG CABIN', id: 'binary_sensor.log_cabin_smoke_co_sensor_carbon_monoxide_detected', map: DET, bad: ['on'] },
-      { l: 'CRAWLSPACE MOISTURE', id: 'binary_sensor.crawlspace_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
     ] },
     { key: 'ACCESS', tone: 'violet', tiles: [
       { l: 'LOG CABIN LOCK', id: 'lock.yale_assure_lock_log_cabin', map: { locked: 'LOCKED', unlocked: 'UNLOCKED', jammed: 'JAMMED' }, warn: ['unlocked'], bad: ['jammed'] },
@@ -373,7 +371,6 @@ STATUS.detail = {
     { t: 'WATER MAIN • OOD HOUSE', tone: 'sky', cols: 3, tiles: [
       { l: 'AIR TEMP', id: 'sensor.water_main_temp_sensor_air_temperature', unit: '°F', lowBad: 35 },
       { l: 'HUMIDITY', id: 'sensor.water_main_temp_sensor_humidity', unit: '%' },
-      { l: 'MOISTURE', id: 'binary_sensor.water_main_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
       flag('UNDERHEAT', 'binary_sensor.water_main_temp_sensor_underheat_detected', 'DETECTED', 'NO'),
       flag('OVERHEAT', 'binary_sensor.water_main_temp_sensor_overheat_detected', 'DETECTED', 'NO'),
       { l: 'HEAT TAPE', id: 'switch.outdoor_plug_1', map: { on: 'ON', off: 'OFF' }, warn: ['off'] },
@@ -425,10 +422,6 @@ STATUS.detail = {
       flag('DEVICE FAULT', 'binary_sensor.log_cabin_smoke_co_sensor_system_software_failure_with_failure_code', 'FAULT', 'OK', 'warn'),
       batt('BATTERY', 'sensor.log_cabin_smoke_co_sensor_battery_level'),
       node('NODE', 'sensor.log_cabin_smoke_co_sensor_node_status'),
-    ] },
-    { t: 'MOISTURE ALARMS', tone: 'red', cols: 2, tiles: [
-      { l: 'CRAWLSPACE', id: 'binary_sensor.crawlspace_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
-      { l: 'WATER MAIN', id: 'binary_sensor.water_main_temp_sensor_moisture_alarm', map: DET, bad: ['on'] },
     ] },
     { t: 'SECURITY SYSTEM', tone: 'red', cols: 2, tiles: [
       { l: 'WYZE HOME MONITORING', id: 'alarm_control_panel.wyze_home_monitoring_system', map: { disarmed: 'DISARMED', armed_home: 'ARMED HOME', armed_away: 'ARMED AWAY', triggered: 'TRIGGERED' }, bad: ['triggered'] },
@@ -539,7 +532,7 @@ STATUS.phone = {
       ['LOG KITCHEN', 'binary_sensor.water_leak_sensor_log_cabin_kitchen_water_leak_detected', 'sensor.water_leak_sensor_log_cabin_kitchen_battery_level'],
       ['AT VALVE', 'binary_sensor.log_cabin_emergency_water_shutoff_water_leak_detected', null],
     ],
-    main: { temp: 'sensor.water_main_temp_sensor_air_temperature', tape: 'switch.outdoor_plug_1', moisture: 'binary_sensor.water_main_temp_sensor_moisture_alarm', battery: 'sensor.water_main_temp_sensor_battery_level' },
+    main: { temp: 'sensor.water_main_temp_sensor_air_temperature', tape: 'switch.outdoor_plug_1', battery: 'sensor.water_main_temp_sensor_battery_level' },
   },
   SEPTIC: {
     pump: 'switch.septic_monitor', runs: 'counter.septic_daily_run_counter', node: 'sensor.septic_monitor_node_status', ping: 'button.septic_monitor_ping',
@@ -548,7 +541,6 @@ STATUS.phone = {
   },
   SAFETY: {
     big: [['SMOKE', 'binary_sensor.log_cabin_smoke_co_sensor_smoke_detected'], ['CARBON MONOXIDE', 'binary_sensor.log_cabin_smoke_co_sensor_carbon_monoxide_detected']],
-    moisture: [['CRAWLSPACE', 'binary_sensor.crawlspace_temp_sensor_moisture_alarm'], ['WATER MAIN', 'binary_sensor.water_main_temp_sensor_moisture_alarm']],
     battery: ['SMOKE / CO DETECTOR', 'sensor.log_cabin_smoke_co_sensor_battery_level'],
     alarm: 'alarm_control_panel.wyze_home_monitoring_system',
   },
