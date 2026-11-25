@@ -1327,3 +1327,22 @@ h1, h2 { margin: 0; font-weight: 500; }
 .m-cams .s-det span i { font-size: 12px; white-space: nowrap; }
 .m-menu { flex: none; align-self: flex-start; min-width: 72px; min-height: 44px; padding: 0 14px; border-radius: 0 22px 22px 0; background: var(--bl-tan); color: #000; font-size: 17px; }
 .m-menu[data-link-btn] { background: var(--bl-red); }
+/* v17 CONTROL accordion */
+.m-accs { gap: 10px; }
+.m-acc { display: flex; flex-direction: column; }
+.m-acc-h { display: grid; grid-template-columns: minmax(0, 1fr) auto 44px; align-items: center; gap: 10px; min-height: 56px; padding: 0 0 0 16px; background: var(--acc); color: #000; border-radius: 28px 0 0 28px; text-align: left; }
+.m-acc-t { font-size: 24px; line-height: 1; white-space: nowrap; }
+.m-acc-s { font-size: 13px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-acc-s[data-warn] { background: #000; color: var(--bl-sunflower); padding: 2px 6px; }
+.m-acc-i { font-style: normal; font-size: 28px; align-self: stretch; display: flex; align-items: center; justify-content: center; background: #000; color: var(--acc); border-left: var(--bl-seam) solid #000; font-family: var(--bl-font-wide); }
+.m-acc[data-open] .m-acc-h { border-radius: 28px 0 0 0; }
+.m-acc-b { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 280ms cubic-bezier(.2,.7,.2,1); border-left: 12px solid var(--acc); }
+.m-acc[data-open] .m-acc-b { grid-template-rows: 1fr; }
+.m-acc-in { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 0 0 0 8px; transition: padding 280ms; }
+.m-acc[data-open] .m-acc-in { padding: 10px 0 4px 8px; }
+.m-acc-in > .m-card { opacity: 0; transform: translateY(-6px); transition: opacity 220ms, transform 220ms; }
+.m-acc[data-open] .m-acc-in > .m-card { opacity: 1; transform: none; transition-delay: 80ms; }
+@media (prefers-reduced-motion: reduce) { .m-acc-b, .m-acc-in, .m-acc-in > .m-card { transition: none; } }
+.m-bri { position: relative; overflow: hidden; }
+.m-bri i { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--bl-sunflower); transition: width 200ms; }
+.m-card[data-lit] { border-left-color: var(--bl-sunflower); }

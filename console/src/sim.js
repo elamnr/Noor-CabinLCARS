@@ -569,6 +569,9 @@ Object.assign(SEED, {
 });
 // Log Cabin lock after secure re-inclusion (2026-11-23 15:55 CST)
 Object.assign(SEED, {
+  'light.log_cabin_ball_lights': C('off', { friendly_name: 'Log Cabin Accent Lights', supported_color_modes: ['color_temp', 'hs', 'xy'], brightness: null }),
+  'light.all_bunk_house_lights': C('on', { friendly_name: 'All Bunk House Lights', supported_color_modes: ['color_temp', 'hs'], brightness: 51 }),
+  'light.string_lights': C('on', { friendly_name: 'String Lights', supported_color_modes: ['onoff'] }),
   'lock.yale_assure_lock_log_cabin': C('unlocked'), 'sensor.yale_assure_lock_log_cabin_battery_level': C('34.0'),
   'binary_sensor.yale_assure_lock_log_cabin_lock_jammed': C('off'), 'binary_sensor.yale_assure_lock_log_cabin_keypad_temporary_disabled': C('off'),
   'binary_sensor.yale_assure_lock_log_cabin_replace_battery_now': C('off'),

@@ -2822,17 +2822,66 @@ function MSwitch({ c: [label, id, onTxt, offTxt, warn] }) {
   );
 }
 
+const bTimers = {};
+function MLight({ c: [label, id] }) {
+  const st = ent(id).value; const a = st?.attributes ?? {};
+  const na = !st || UNAVAIL.has(st.state); const on = st?.state === 'on';
+  const dim = !(a.supported_color_modes ?? []).every((m) => m === 'onoff');
+  const target = useSignal(null); // brightness % while adjusting, committed after a pause
+  const pct = target.value ?? (on && a.brightness != null ? Math.round(a.brightness / 2.55) : null);
+  const bump = (d) => {
+    const v = Math.max(5, Math.min(100, Math.round(((pct ?? 0) + d) / 5) * 5));
+    target.value = v; clearTimeout(bTimers[id]);
+    bTimers[id] = setTimeout(async () => { await call('light', 'turn_on', { brightness_pct: v }, id); target.value = null; }, 900);
+  };
+  return (
+    <div class="m-card" data-tone={na ? 'na' : 'ok'} data-lit={on ? '' : undefined}>
+      <div class="m-card-h" data-link="" onClick={() => openEntity(id)}><span>{label}</span><b>{na ? 'NO SIGNAL' : on ? (dim && pct != null ? `${pct}%` : 'ON') : 'OFF'}</b></div>
+      {dim && (
+        <div class="m-thermo">
+          <button class="m-btn m-sq" disabled={na || !on || (pct ?? 0) <= 5} onClick={() => bump(-10)} aria-label={`Dim ${label}`}>−</button>
+          <div class="m-sp m-bri" data-pend={target.value != null ? '' : undefined}><small>{target.value != null ? 'SENDING' : 'BRIGHTNESS'}</small><i style={{ width: `${on ? pct ?? 0 : 0}%` }} /><b>{on && pct != null ? `${pct}%` : 'OFF'}</b></div>
+          <button class="m-btn m-sq" disabled={na || !on || (pct ?? 0) >= 100} onClick={() => bump(10)} aria-label={`Brighten ${label}`}>+</button>
+        </div>
+      )}
+      <div class="m-row2">
+        <MBtn k={`lon:${id}`} label="ON" tone="tan" sel={on} disabled={na || on} busy={isPending(id)} onRun={() => call('light', 'turn_on', {}, id)} />
+        <MBtn k={`loff:${id}`} label="OFF" tone="sunflower" sel={!na && !on} disabled={na || !on} busy={isPending(id)} onRun={() => call('light', 'turn_off', {}, id)} />
+      </div>
+    </div>
+  );
+}
+
+/* CONTROL tab: accordion sections, one open at a time (remembered). The closed header carries a one-line summary. */
+const mSec = signal((() => { try { return localStorage.getItem('cabinlcars.mobile.sec') ?? 'ILLUMINATION'; } catch { return 'ILLUMINATION'; } })());
+function openSec(k) { mSec.value = mSec.peek() === k ? '' : k; try { localStorage.setItem('cabinlcars.mobile.sec', mSec.value); } catch {} }
+function MSection({ k, tone, sum, warn, children }) {
+  const open = mSec.value === k;
+  return (
+    <section class="m-acc" data-open={open ? '' : undefined} style={{ '--acc': `var(--bl-${tone})` }}>
+      <button class="m-acc-h" aria-expanded={open} onClick={() => openSec(k)}>
+        <span class="m-acc-t">{k}</span><span class="m-acc-s" data-warn={warn ? '' : undefined}>{sum}</span><i class="m-acc-i">{open ? '−' : '+'}</i>
+      </button>
+      <div class="m-acc-b"><div class="m-acc-in">{children}</div></div>
+    </section>
+  );
+}
 function MControl() {
   const C = useRoom().status.controls;
+  const st = (id) => ent(id).value;
+  const lightsOn = C.lights.filter(([, id]) => st(id)?.state === 'on').length;
+  const unlocked = C.locks.filter(([, id]) => st(id)?.state === 'unlocked').length;
+  const heatOff = C.climate.filter(([, id]) => st(id)?.state === 'off').length;
+  const temps = C.climate.map(([, id]) => st(id)?.attributes?.current_temperature).filter((v) => v != null);
+  const sw = C.switches.map(([l, id, onT, offT]) => { const s = st(id); return !s || UNAVAIL.has(s.state) ? 'NO SIGNAL' : s.state === 'on' ? onT : offT; });
+  const swWarn = C.switches.some(([, id]) => st(id)?.state !== 'on');
   return (
-    <div class="m-stack">
+    <div class="m-stack m-accs">
       <div class="m-note">CONTROLS ACT ON THE CABIN • RED BUTTONS NEED A SECOND TAP WITHIN 4 S</div>
-      <SecHead title="LOCKS" tone="violet" />
-      {C.locks.map((c) => <MLock c={c} />)}
-      <SecHead title="HEATING" tone="rose" />
-      {C.climate.map((c) => <MClimate c={c} />)}
-      <SecHead title="WATER" tone="sky" />
-      {C.switches.map((c) => <MSwitch c={c} />)}
+      <MSection k="ILLUMINATION" tone="sunflower" sum={`${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}</MSection>
+      <MSection k="LOCKS" tone="violet" sum={unlocked ? `${unlocked} UNLOCKED` : 'ALL LOCKED'} warn={unlocked > 0}>{C.locks.map((c) => <MLock c={c} />)}</MSection>
+      <MSection k="ENVIRONMENTAL" tone="rose" sum={heatOff ? `${heatOff} HEAT OFF` : temps.length ? `${Math.round(Math.min(...temps))}°–${Math.round(Math.max(...temps))}°` : '--'} warn={heatOff > 0}>{C.climate.map((c) => <MClimate c={c} />)}</MSection>
+      <MSection k="WATER" tone="sky" sum={`VALVE ${sw[0]} • TAPE ${sw[1]}`} warn={swWarn}>{C.switches.map((c) => <MSwitch c={c} />)}</MSection>
     </div>
   );
 }
@@ -2912,7 +2961,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v16';
+export const BUILD = 'v17';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
