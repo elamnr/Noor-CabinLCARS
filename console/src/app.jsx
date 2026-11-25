@@ -2546,7 +2546,7 @@ function SCam({ c: [label, id, wide, det] }) {
     <section class="panel s-cam" data-wide={wide ? '' : undefined} data-hot={hot ? '' : undefined}>
       <SecHead title={label} tone={hot ? 'red' : active.length ? 'sunflower' : 'violet'} />
       {src ? <img class="s-feed" data-link="" title="Open full screen" onClick={() => (camView.value = { kind: 'cam', c: [label, id, wide, det] })} src={src} alt={`${label} camera`} />
-        : <div class="s-feed alert-nocam"><span>NO FEED</span><small>{link.value.mode === 'sim' ? 'SIMULATION • CAMERA REQUIRES LIVE LINK' : `${UP(cam?.state ?? 'CAMERA NOT FOUND')}`}</small></div>}
+        : <div class="s-feed alert-nocam" data-link="" onClick={() => (camView.value = { kind: 'cam', c: [label, id, wide, det] })}><span>NO FEED</span><small>{link.value.mode === 'sim' ? 'SIMULATION • CAMERA REQUIRES LIVE LINK' : `${UP(cam?.state ?? 'CAMERA NOT FOUND')}`}</small></div>}
       <div class="s-det">
         {det.map(([l, d]) => { const st = ent(d).value; const on = st?.state === 'on'; return <span data-link="" onClick={() => openEntity(d)} data-on={on ? '' : undefined} data-kind={l === 'MOTION' ? 'motion' : 'ai'} data-na={!st || UNAVAIL.has(st.state) ? '' : undefined}>{l}<i>{!st || UNAVAIL.has(st.state) ? '--' : on ? 'NOW' : ago(st.last_changed)}</i></span>; })}
       </div>
@@ -2734,11 +2734,175 @@ function StatusFrame() {
   );
 }
 
-export const BUILD = 'v14';
+/* ================= MOBILE (room: mobile) =================
+   Portrait phone console: STATUS / CONTROL / CAMERAS tabs on a bottom LCARS bar.
+   Physical controls (locks, water valve, heat tape, heat off) need a second tap within ARM_MS. */
+const mTab = signal((() => { try { return localStorage.getItem('cabinlcars.mobile.tab') || 'STATUS'; } catch { return 'STATUS'; } })());
+function goTab(t) { if (t !== 'CAMERAS') camView.value = null; mTab.value = t; try { localStorage.setItem('cabinlcars.mobile.tab', t); } catch {} try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }
+const mOpen = signal(null); // expanded subsystem on STATUS
+const mArmed = signal(null); // { key, until }
+const ARM_MS = 4000;
+let mArmTimer;
+/** First tap arms, second tap within ARM_MS runs. */
+function mArmOrRun(key, run) {
+  const a = mArmed.peek();
+  if (a?.key === key && Date.now() < a.until) { mArmed.value = null; clearTimeout(mArmTimer); run(); return; }
+  mArmed.value = { key, until: Date.now() + ARM_MS };
+  clearTimeout(mArmTimer); mArmTimer = setTimeout(() => { if (mArmed.peek()?.key === key) mArmed.value = null; }, ARM_MS);
+}
+const mIsArmed = (key) => mArmed.value?.key === key;
+function MBtn({ k, label, confirm, tone = 'tan', onRun, disabled, busy, sel }) {
+  const on = confirm && mIsArmed(k);
+  return (
+    <button class="m-btn" data-tone={on ? 'red' : tone} data-sel={sel ? '' : undefined} data-armed={on ? '' : undefined} disabled={disabled || busy}
+      onClick={() => (confirm ? mArmOrRun(k, onRun) : onRun())}>{busy ? 'WORKING' : on ? `TAP AGAIN • ${label}` : label}</button>
+  );
+}
+
+function MLock({ c: [label, id, batt] }) {
+  const st = ent(id).value; const b = num(ent(batt).value);
+  const na = !st || UNAVAIL.has(st.state); const locked = st?.state === 'locked'; const busy = isPending(id) || st?.state === 'locking' || st?.state === 'unlocking';
+  const tone = na ? 'na' : st.state === 'jammed' ? 'alert' : locked ? 'ok' : 'warn';
+  return (
+    <div class="m-card" data-tone={tone}>
+      <div class="m-card-h" data-link="" onClick={() => openEntity(id)}><span>{label}</span><b>{na ? 'NO SIGNAL' : UP(st.state)}</b></div>
+      <div class="m-card-s">{b == null ? 'BATTERY --' : `BATTERY ${Math.round(b)}%`}{st && !na ? ` • ${ago(st.last_changed)}` : ''}</div>
+      <div class="m-row2">
+        <MBtn k={`lock:${id}`} label="LOCK" tone="tan" sel={locked} disabled={na || locked} busy={busy} confirm onRun={() => call('lock', 'lock', {}, id)} />
+        <MBtn k={`unlock:${id}`} label="UNLOCK" tone="sunflower" sel={!na && !locked} disabled={na || !locked} busy={busy} confirm onRun={() => call('lock', 'unlock', {}, id)} />
+      </div>
+    </div>
+  );
+}
+
+const setTimers = {};
+function MClimate({ c: [label, id] }) {
+  const st = ent(id).value; const a = st?.attributes ?? {};
+  const na = !st || UNAVAIL.has(st.state); const off = st?.state === 'off';
+  const target = useSignal(null); // local set point while adjusting, committed after a pause
+  const sp = target.value ?? a.temperature;
+  const lo = a.min_temp ?? 41, hi = a.max_temp ?? 86, step = a.target_temp_step ?? 1;
+  const bump = (d) => {
+    const v = Math.max(lo, Math.min(hi, Math.round(((sp ?? a.current_temperature ?? 60) + d) / step) * step));
+    target.value = v; clearTimeout(setTimers[id]);
+    setTimers[id] = setTimeout(async () => { await call('climate', 'set_temperature', { temperature: v }, id); target.value = null; }, 1200);
+  };
+  const cur = a.current_temperature;
+  const tone = na ? 'na' : cur != null && cur < 50 ? 'alert' : cur != null && cur > 85 ? 'alert' : 'ok';
+  const modes = a.hvac_modes ?? ['off', 'heat'];
+  return (
+    <div class="m-card" data-tone={tone}>
+      <div class="m-card-h" data-link="" onClick={() => openEntity(id)}><span>{label}</span><b>{na ? 'NO SIGNAL' : `${cur ?? '--'}°`}</b></div>
+      <div class="m-card-s">{na ? '--' : `${UP(st.state)} • ${UP(a.hvac_action ?? 'idle')}`}</div>
+      <div class="m-thermo">
+        <button class="m-btn m-sq" disabled={na || off || sp == null || sp <= lo} onClick={() => bump(-step)} aria-label={`Lower ${label} set point`}>−</button>
+        <div class="m-sp" data-pend={target.value != null ? '' : undefined}><small>{target.value != null ? 'SENDING' : 'SET'}</small><b>{off || sp == null ? 'OFF' : `${sp}°`}</b></div>
+        <button class="m-btn m-sq" disabled={na || off || sp == null || sp >= hi} onClick={() => bump(step)} aria-label={`Raise ${label} set point`}>+</button>
+      </div>
+      <div class="m-row2">
+        {modes.includes('heat') && <MBtn k={`heat:${id}`} label="HEAT" tone="rose" sel={st?.state === 'heat'} disabled={na || st?.state === 'heat'} busy={isPending(id)} onRun={() => call('climate', 'set_hvac_mode', { hvac_mode: 'heat' }, id)} />}
+        <MBtn k={`off:${id}`} label="OFF" tone="sunflower" sel={off} disabled={na || off} busy={isPending(id)} confirm onRun={() => call('climate', 'set_hvac_mode', { hvac_mode: 'off' }, id)} />
+      </div>
+    </div>
+  );
+}
+
+function MSwitch({ c: [label, id, onTxt, offTxt, warn] }) {
+  const st = ent(id).value; const na = !st || UNAVAIL.has(st.state); const on = st?.state === 'on';
+  const k = `sw:${id}`;
+  return (
+    <div class="m-card" data-tone={na ? 'na' : on ? 'ok' : 'warn'}>
+      <div class="m-card-h" data-link="" onClick={() => openEntity(id)}><span>{label}</span><b>{na ? 'NO SIGNAL' : on ? onTxt : offTxt}</b></div>
+      <div class="m-card-s">{mIsArmed(`${k}:off`) ? warn : st && !na ? `SINCE ${ago(st.last_changed)}` : '--'}</div>
+      <div class="m-row2">
+        <MBtn k={`${k}:on`} label={onTxt === 'OPEN' ? 'OPEN' : 'ON'} tone="tan" sel={on} disabled={na || on} busy={isPending(id)} confirm onRun={() => call('switch', 'turn_on', {}, id)} />
+        <MBtn k={`${k}:off`} label={offTxt === 'CLOSED' ? 'CLOSE' : 'OFF'} tone="sunflower" sel={!na && !on} disabled={na || !on} busy={isPending(id)} confirm onRun={() => call('switch', 'turn_off', {}, id)} />
+      </div>
+    </div>
+  );
+}
+
+function MControl() {
+  const C = useRoom().status.controls;
+  return (
+    <div class="m-stack">
+      <div class="m-note">CONTROLS ACT ON THE CABIN • RED BUTTONS NEED A SECOND TAP WITHIN 4 S</div>
+      <SecHead title="LOCKS" tone="violet" />
+      {C.locks.map((c) => <MLock c={c} />)}
+      <SecHead title="HEATING" tone="rose" />
+      {C.climate.map((c) => <MClimate c={c} />)}
+      <SecHead title="WATER" tone="sky" />
+      {C.switches.map((c) => <MSwitch c={c} />)}
+    </div>
+  );
+}
+
+function MStatus({ E }) {
+  const S = useRoom().status;
+  const keys = ['WATER', 'SEPTIC', 'THERMAL', 'SAFETY', 'ACCESS', 'NETWORK'];
+  const tilesOf = (k) => { const seen = new Set(); return [...(S.groups.find((g) => g.key === k)?.tiles ?? []), ...(S.detail?.[k] ?? []).flatMap((p) => p.tiles ?? [])].filter((t) => !seen.has(t.id) && seen.add(t.id)); };
+  return (
+    <div class="m-stack">
+      <section class="panel">
+        <SecHead title={E.items.length ? `${E.items.length} ${E.items.length > 1 ? 'ITEMS NEED' : 'ITEM NEEDS'} ATTENTION` : 'ALL SYSTEMS NOMINAL'} tone={E.alerts ? 'red' : E.warns ? 'sunflower' : 'tan'} />
+        {E.items.length > 0 && <div class="m-alist">{E.items.map((x) => <div class="s-al" data-link="" onClick={() => openEntity(x.id)} data-tone={x.tone}><i>{x.g}</i><span>{x.l}</span><b>{x.v}</b></div>)}</div>}
+      </section>
+      <section class="panel">
+        <SecHead title="TEMPERATURES" tone="tan" />
+        <div class="m-temps">{S.thermal.map(([l, id, o]) => { const v = tempOf(id); return <div class="m-temp" data-link="" onClick={() => openEntity(id)} data-tone={meterTone(v, o)}><span>{l}</span><b>{v == null ? '--' : `${Math.round(v)}°`}</b></div>; })}</div>
+      </section>
+      <section class="panel">
+        <SecHead title="SUBSYSTEMS" tone="peach" />
+        <div class="m-lamps">
+          {keys.map((k) => {
+            const tone = E.groups[k] ?? 'na'; const n = E.items.filter((x) => x.g === k).length;
+            return <button class="m-lamp" data-tone={tone} data-cur={mOpen.value === k ? '' : undefined} onClick={() => (mOpen.value = mOpen.value === k ? null : k)}><span>{k}</span><b>{{ ok: 'NOMINAL', warn: `${n} CAUTION`, alert: `${n} ALERT`, na: 'NO SIGNAL' }[tone]}</b></button>;
+          })}
+        </div>
+        {mOpen.value && <div class="m-sub"><SecHead title={mOpen.value} tone={LAMP_TONE[mOpen.value]} /><div class="s-tiles" style={{ '--cols': 2 }}>{tilesOf(mOpen.value).map((t) => <STile t={t} />)}</div></div>}
+      </section>
+    </div>
+  );
+}
+
+function MCameras() {
+  const S = useRoom().status;
+  if (camView.value) return <SCamViewer v={camView.value} key={camView.value.c?.[1] ?? camView.value.w?.[1]} />;
+  return <div class="m-stack m-cams">{S.cameras.map((c) => <SCam c={c} />)}{(S.webcams ?? []).map((w) => <SWebcam w={w} />)}</div>;
+}
+
+function MobileFrame() {
+  const R = useRoom(); const S = R.status;
+  const E = useStatusEval(S);
+  const tab = ['STATUS', 'CONTROL', 'CAMERAS'].includes(mTab.value) ? mTab.value : 'STATUS';
+  const camNa = S.cameras.filter(([, c]) => { const st = ent(c).value; return !st || UNAVAIL.has(st.state); }).length;
+  const head = E.alerts ? `${E.alerts} ALERT${E.alerts > 1 ? 'S' : ''}` : E.warns ? `${E.warns} CAUTION` : 'NOMINAL';
+  const unlocked = S.controls.locks.filter(([, id]) => ent(id).value?.state === 'unlocked').length;
+  return (
+    <div class="m-app" data-tab={tab}>
+      <header class="m-hd">
+        <span class="m-hd-cap" style={{ background: E.alerts ? 'var(--bl-red)' : E.warns ? 'var(--bl-sunflower)' : 'var(--bl-amber)' }}><b>{head}</b></span>
+        <div class="m-hd-t"><h1>{R.title}</h1><small>{tab === 'STATUS' ? 'MASTER SYSTEMS' : tab} • {hm(clock.value)} • {BUILD}</small></div>
+      </header>
+      <main class="m-body">{tab === 'CONTROL' ? <MControl /> : tab === 'CAMERAS' ? <MCameras /> : <MStatus E={E} />}</main>
+      <div class="m-fault"><Fault /></div>
+      <nav class="m-tabs" aria-label="Sections">
+        <button class="m-tab" data-cur={tab === 'STATUS' ? '' : undefined} style={{ '--nav': `var(--bl-${E.alerts ? 'red' : E.warns ? 'sunflower' : 'amber'})` }} onClick={() => goTab('STATUS')}><small>{head}</small>STATUS</button>
+        <button class="m-tab" data-cur={tab === 'CONTROL' ? '' : undefined} style={{ '--nav': 'var(--bl-peach)' }} onClick={() => goTab('CONTROL')}><small>{unlocked ? `${unlocked} UNLOCKED` : 'LOCKED'}</small>CONTROL</button>
+        <button class="m-tab" data-cur={tab === 'CAMERAS' ? '' : undefined} style={{ '--nav': `var(--bl-${camNa ? 'red' : 'violet'})` }} onClick={() => goTab('CAMERAS')}><small>{camNa ? `${camNa} OFFLINE` : `${S.cameras.length} FEEDS`}</small>CAMERAS</button>
+      </nav>
+      {link.value.mode !== 'hass' && <button class="m-link" onClick={() => (linkOpen.value = true)}>LINK</button>}
+      <LinkPanel />
+      <ReloadWatch />
+    </div>
+  );
+}
+
+export const BUILD = 'v15';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
-  return <RoomCtx.Provider value={R}>{R.kiosk === 'status' ? <StatusFrame /> : R.kiosk ? <KitchenFrame /> : <Frame />}</RoomCtx.Provider>;
+  return <RoomCtx.Provider value={R}>{R.kiosk === 'mobile' ? <MobileFrame /> : R.kiosk === 'status' ? <StatusFrame /> : R.kiosk ? <KitchenFrame /> : <Frame />}</RoomCtx.Provider>;
 }
 
 export { App, ALL_IDS };

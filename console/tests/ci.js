@@ -63,7 +63,7 @@ const fail = (m) => { fails.push(m); console.log('FAIL', m); };
   }
 
   const bundle = fs.readFileSync('dist/cabin-lcars.js', 'utf8');
-  for (const room of ['status', 'bedroom', 'office', 'entry', 'house', 'kitchen']) {
+  for (const room of ['status', 'mobile', 'bedroom', 'office', 'entry', 'house', 'kitchen']) {
     const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
     p.on('pageerror', (e) => fail(`card ${room}: ${e.message}`));
     await block(p);

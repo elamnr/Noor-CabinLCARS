@@ -528,8 +528,18 @@ STATUS.network = {
     ['SITE / UTILITY', [['SEPTIC MONITOR', 'sensor.septic_monitor_node_status', 'mains'], ['WATER MAIN SENSOR', 'sensor.water_main_temp_sensor_node_status', 'battery'], ['HEAT TAPE OUTLET', 'sensor.outdoor_plug_1_node_status', 'mains'], ['ZOOZ OUTLET 2', 'sensor.zooz_outdoor_outlets_node_status', 'mains']]],
   ],
 };
+// PHONE CONTROLS (room: mobile). Every action that changes something physical needs a second tap within 4 s.
+STATUS.controls = {
+  locks: [['LOG CABIN', 'lock.yale_assure_lock_log_cabin', 'sensor.yale_assure_lock_log_cabin_battery_level'], ['BUNK HOUSE', 'lock.bunk_house_yale_assure_lock_bunkhouse', 'sensor.bunk_house_yale_assure_lock_bunkhouse_battery_level']],
+  climate: [['LOG CABIN MAIN', 'climate.log_cabin_main_thermostat'], ['LOG CABIN FIREPLACE', 'climate.log_cabin_fireplace_thermostat'], ['BUNK HOUSE MAIN', 'climate.bunk_main_thermostat'], ['BUNK HOUSE BATH', 'climate.bunk_bath_thermostat_thermostat']],
+  // [label, switch, text when on, text when off, warning shown before turning off]
+  switches: [
+    ['MAIN WATER VALVE', 'switch.log_cabin_emergency_water_shutoff', 'OPEN', 'CLOSED', 'CLOSING CUTS WATER TO THE LOG CABIN'],
+    ['WATER MAIN HEAT TAPE', 'switch.outdoor_plug_1', 'ON', 'OFF', 'THE WATER MAIN CAN FREEZE WITHOUT HEAT TAPE'],
+  ],
+};
 export function statusIds(S) {
-  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...(S.humidityAll ?? []).map((x) => x[1]), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
+  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...(S.humidityAll ?? []).map((x) => x[1]), ...(S.controls ? [...S.controls.locks.flatMap((x) => [x[1], x[2]]), ...S.controls.climate.map((x) => x[1]), ...S.controls.switches.map((x) => x[1])] : []), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
 }
 ROOMS.status = {
   key: 'status', title: 'TINY CABINS', kiosk: 'status',
@@ -537,6 +547,7 @@ ROOMS.status = {
   weather: { entity: 'weather.forecast_tiny_cabins', sun: 'sun.sun', hvacOutdoor: null },
   status: STATUS, pages: ['STATUS'],
 };
+ROOMS.mobile = { ...ROOMS.status, key: 'mobile', kiosk: 'mobile' };
 
 export function roomIds(R) {
   return [
