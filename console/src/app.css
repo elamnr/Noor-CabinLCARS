@@ -1428,3 +1428,26 @@ h1, h2 { margin: 0; font-weight: 500; }
 .m-acc[data-alert] .m-acc-h { color: #000; }
 .m-acc[data-alert] .m-acc-t { animation: blink var(--bl-dur-blink) steps(1, end) infinite; }
 .s-feed[data-bad] { visibility: hidden; }
+/* v24 compact light rows */
+.m-light { display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 10px 14px; background: var(--bl-hull); border-left: 12px solid var(--bl-lilac); }
+.m-light[data-tone="on"] { border-left-color: var(--bl-sunflower); }
+.m-light[data-tone="na"] { border-left-color: var(--bl-rust); }
+.m-light-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.m-light-h span { font-size: 18px; color: var(--bl-title); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-light-h b { font-size: 16px; font-weight: 500; color: var(--bl-on-lilac); white-space: nowrap; }
+.m-light[data-tone="on"] .m-light-h b { color: var(--bl-sunflower); }
+.m-light-c { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px 84px; gap: var(--bl-seam); align-items: stretch; }
+.m-light-c1 { grid-template-columns: 1fr 84px; }
+.m-light-c1 .m-ltog { grid-column: 2; }
+.m-light-c .m-sq { min-height: 48px; font-size: 26px; }
+.m-light-c .m-sq:first-child { border-radius: 24px 0 0 24px; }
+.m-lbri { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; background: var(--bl-lilac); overflow: hidden; }
+.m-lbri i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bl-sunflower); opacity: 0.35; transition: width 200ms; }
+.m-lbri b { position: relative; font-size: 24px; font-weight: 400; color: var(--bl-title); line-height: 1; }
+.m-lbri[data-pend] b { color: var(--bl-sunflower); }
+.m-ltog { min-height: 48px; border-radius: 0 24px 24px 0 !important; font-size: 18px; }
+.m-ltog[data-on]:not(:disabled) { background: var(--bl-sunflower); }
+.m-more { min-height: 52px; border-radius: 0 26px 26px 0; background: var(--bl-bone) !important; color: #000 !important; font-size: 18px; }
+.m-light-one { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 10px; align-items: center; }
+.m-light-one .m-light-h { flex-direction: column; align-items: flex-start; gap: 2px; }
+.m-light-one .m-ltog { border-radius: 24px !important; }

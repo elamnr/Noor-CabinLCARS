@@ -553,6 +553,12 @@ STATUS.phone = {
 // PHONE CONTROLS (room: mobile). Every action that changes something physical needs a second tap within 4 s.
 STATUS.controls = {
   lights: [['LOG CABIN ACCENT LIGHTS', 'light.log_cabin_ball_lights'], ['BUNK HOUSE LIGHTS', 'light.all_bunk_house_lights'], ['STRING LIGHTS', 'light.string_lights']],
+  // ALL LIGHTS page (opened from ILLUMINATION): [building, [[label, light], ...]]
+  lightPage: [
+    ['LOG CABIN', [['ACCENT LIGHTS (ALL)', 'light.log_cabin_ball_lights'], ['TV BALL', 'light.log_cabin_tv_ball'], ['BALL 2', 'light.log_cabin_ball_2'], ['KITCHEN SKYLINE', 'light.kitchen_skyline']]],
+    ['BUNK HOUSE', [['ALL BUNK HOUSE', 'light.all_bunk_house_lights'], ['BUNK BEDS', 'light.all_bunk_bed_lights'], ['LIVING ROOM', 'light.bunk_living_all'], ['COUCH', 'light.bunk_couch_lights']]],
+    ['OUTDOOR', [['STRING LIGHTS', 'light.string_lights'], ['DRIVEWAY FLOOD', 'light.cabin_driveway_floodlight'], ['LOG CABIN ENTRY FLOOD', 'light.log_cabin_entry_floodlight'], ['BUNK HOUSE PANO FLOOD', 'light.bunk_house_pano_floodlight'], ['BUNK HOUSE STAIRS FLOOD', 'light.bunk_house_stairs_floodlight']]],
+  ],
   locks: [['LOG CABIN', 'lock.yale_assure_lock_log_cabin', 'sensor.yale_assure_lock_log_cabin_battery_level'], ['BUNK HOUSE', 'lock.bunk_house_yale_assure_lock_bunkhouse', 'sensor.bunk_house_yale_assure_lock_bunkhouse_battery_level']],
   climate: [['LOG CABIN MAIN', 'climate.log_cabin_main_thermostat'], ['LOG CABIN FIREPLACE', 'climate.log_cabin_fireplace_thermostat'], ['BUNK HOUSE MAIN', 'climate.bunk_main_thermostat'], ['BUNK HOUSE BATH', 'climate.bunk_bath_thermostat_thermostat']],
   // [label, switch, text when on, text when off, warning shown before turning off]
@@ -562,7 +568,7 @@ STATUS.controls = {
   ],
 };
 export function statusIds(S) {
-  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...(S.humidityAll ?? []).map((x) => x[1]), ...(S.controls ? [...(S.controls.lights ?? []).map((x) => x[1]), ...S.controls.locks.flatMap((x) => [x[1], x[2]]), ...S.controls.climate.map((x) => x[1]), ...S.controls.switches.map((x) => x[1])] : []), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
+  return [...S.groups.flatMap((g) => g.tiles.map((t) => t.id)), ...Object.values(S.detail ?? {}).flat().flatMap((p) => (p.tiles ?? []).map((t) => t.id)), ...(S.cameras ?? []).flatMap(([, c, , d]) => [c, ...d.map((x) => x[1])]), ...(S.humidityAll ?? []).map((x) => x[1]), ...(S.controls ? [...(S.controls.lights ?? []).map((x) => x[1]), ...(S.controls.lightPage ?? []).flatMap(([, l]) => l.map((x) => x[1])), ...S.controls.locks.flatMap((x) => [x[1], x[2]]), ...S.controls.climate.map((x) => x[1]), ...S.controls.switches.map((x) => x[1])] : []), ...S.thermal.map((m) => m[1]), ...S.humidity.map((m) => m[1]), S.co2, ...Object.values(S.solar), ...S.units.flatMap((u) => u.slice(1))];
 }
 ROOMS.status = {
   key: 'status', title: 'TINY CABINS', kiosk: 'status',

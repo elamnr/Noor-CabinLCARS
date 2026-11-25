@@ -2753,7 +2753,7 @@ function StatusFrame() {
    Portrait phone console: STATUS / CONTROL / CAMERAS tabs on a bottom LCARS bar.
    Physical controls (locks, water valve, heat tape, heat off) need a second tap within ARM_MS. */
 const mTab = signal((() => { try { return localStorage.getItem('cabinlcars.mobile.tab') || 'STATUS'; } catch { return 'STATUS'; } })());
-function goTab(t) { if (t !== 'CAMERAS') camView.value = null; if (t === 'STATUS' && mTab.peek() === 'STATUS') mOpen.value = null; mTab.value = t; try { localStorage.setItem('cabinlcars.mobile.tab', t); } catch {} try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }
+function goTab(t) { if (t === 'CONTROL' && mTab.peek() === 'CONTROL') lightsPage.value = false; if (t !== 'CAMERAS') camView.value = null; if (t === 'STATUS' && mTab.peek() === 'STATUS') mOpen.value = null; mTab.value = t; try { localStorage.setItem('cabinlcars.mobile.tab', t); } catch {} try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }
 const mOpen = signal(null); // expanded subsystem on STATUS
 const mArmed = signal(null); // { key, until }
 const ARM_MS = 4000;
@@ -2838,10 +2838,12 @@ function MSwitch({ c: [label, id, onTxt, offTxt, warn] }) {
 }
 
 const bTimers = {};
+/** One light, one compact block: name + state, then [−][brightness][+][toggle]. On/off-only lights get the toggle alone. */
 function MLight({ c: [label, id] }) {
   const st = ent(id).value; const a = st?.attributes ?? {};
   const na = !st || UNAVAIL.has(st.state); const on = st?.state === 'on';
-  const dim = !(a.supported_color_modes ?? []).every((m) => m === 'onoff');
+  const modes = [].concat(a.supported_color_modes ?? []);
+  const dim = modes.length > 0 && !modes.every((m) => m === 'onoff') && modes.join('') !== 'onoff';
   const target = useSignal(null); // brightness % while adjusting, committed after a pause
   const pct = target.value ?? (on && a.brightness != null ? Math.round(a.brightness / 2.55) : null);
   const bump = (d) => {
@@ -2849,20 +2851,32 @@ function MLight({ c: [label, id] }) {
     target.value = v; clearTimeout(bTimers[id]);
     bTimers[id] = setTimeout(async () => { await call('light', 'turn_on', { brightness_pct: v }, id); target.value = null; }, 900);
   };
+  const toggle = <button class="m-btn m-ltog" data-on={on ? '' : undefined} disabled={na || isPending(id)} onClick={() => call('light', on ? 'turn_off' : 'turn_on', {}, id)}>{isPending(id) ? '…' : on ? 'TURN OFF' : 'TURN ON'}</button>;
   return (
-    <div class="m-card" data-tone={na ? 'na' : 'ok'} data-lit={on ? '' : undefined}>
-      <div class="m-card-h" data-link="" onClick={() => openEntity(id)}><span>{label}</span><b>{na ? 'NO SIGNAL' : on ? (dim && pct != null ? `${pct}%` : 'ON') : 'OFF'}</b></div>
+    <div class="m-light" data-tone={na ? 'na' : on ? 'on' : 'off'}>
+      {!dim ? <div class="m-light-one"><div class="m-light-h" data-link="" onClick={() => openEntity(id)}><span>{label}</span><b>{na ? 'NO SIGNAL' : on ? 'ON' : 'OFF'}</b></div>{toggle}</div> : <div class="m-light-h" data-link="" onClick={() => openEntity(id)}><span>{label}</span><b>{na ? 'NO SIGNAL' : on ? 'ON' : 'OFF'}</b></div>}
       {dim && (
-        <div class="m-thermo">
+        <div class="m-light-c">
           <button class="m-btn m-sq" disabled={na || !on || (pct ?? 0) <= 5} onClick={() => bump(-10)} aria-label={`Dim ${label}`}>−</button>
-          <div class="m-sp m-bri" data-pend={target.value != null ? '' : undefined}><small>{target.value != null ? 'SENDING' : 'BRIGHTNESS'}</small><i style={{ width: `${on ? pct ?? 0 : 0}%` }} /><b>{on && pct != null ? `${pct}%` : 'OFF'}</b></div>
+          <div class="m-lbri" data-pend={target.value != null ? '' : undefined}><i style={{ width: `${on ? pct ?? 0 : 0}%` }} /><b>{on && pct != null ? `${pct}%` : '--'}</b></div>
           <button class="m-btn m-sq" disabled={na || !on || (pct ?? 0) >= 100} onClick={() => bump(10)} aria-label={`Brighten ${label}`}>+</button>
+          {toggle}
         </div>
       )}
-      <div class="m-row2">
-        <MBtn k={`lon:${id}`} label="ON" tone="tan" sel={on} disabled={na || on} busy={isPending(id)} onRun={() => call('light', 'turn_on', {}, id)} />
-        <MBtn k={`loff:${id}`} label="OFF" tone="sunflower" sel={!na && !on} disabled={na || !on} busy={isPending(id)} onRun={() => call('light', 'turn_off', {}, id)} />
+    </div>
+  );
+}
+const lightsPage = signal(false);
+function MLightsPage() {
+  const P = useRoom().status.controls.lightPage;
+  return (
+    <div class="m-stack m-page">
+      <div class="m-back">
+        <button class="m-btn" onClick={() => (lightsPage.value = false)}>◀ CONTROL</button>
+        <h2 style={{ color: 'var(--bl-bone)' }}>ALL LIGHTS</h2>
+        <span>{P.flatMap(([, l]) => l).filter(([, id]) => ent(id).value?.state === 'on').length} ON</span>
       </div>
+      {P.map(([b, list]) => <MPanel t={b} tone="bone">{list.map((c) => <MLight c={c} />)}</MPanel>)}
     </div>
   );
 }
@@ -2884,6 +2898,7 @@ function MSection({ k, tone, sum, alert, children }) {
 }
 function MControl() {
   const S = useRoom().status; const C = S.controls;
+  if (lightsPage.value && C.lightPage) return <MLightsPage />;
   const st = (id) => ent(id).value;
   const na = (id) => isNa(st(id));
   // ILLUMINATION: out of norm = a light group not reporting
@@ -2908,7 +2923,7 @@ function MControl() {
   const swBad = C.switches.some(([, id]) => st(id)?.state !== 'on');
   return (
     <div class="m-stack m-accs">
-      <MSection k="ILLUMINATION" tone="bone" alert={lightsNa.length > 0} sum={lightsNa.length ? `${lightsNa.length} NOT REPORTING` : `${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}</MSection>
+      <MSection k="ILLUMINATION" tone="bone" alert={lightsNa.length > 0} sum={lightsNa.length ? `${lightsNa.length} NOT REPORTING` : `${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}<button class="m-btn m-more" onClick={() => { lightsPage.value = true; try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }}>ALL LIGHTS ▶</button></MSection>
       <MSection k="LOCKS" tone="violet" alert={lockBad.length > 0} sum={lockBad.length ? (unlocked ? `${unlocked} UNLOCKED` : `${lockBad.length} CHECK LOCK`) : 'ALL LOCKED'}>{C.locks.map((c) => <MLock c={c} />)}</MSection>
       <MSection k="ENVIRONMENTAL" tone="peach" alert={envBad.length > 0} sum={envBad.length ? envBad.join(' • ') : temps.length ? `${Math.round(Math.min(...temps))}°–${Math.round(Math.max(...temps))}°` : '--'}>{C.climate.map((c) => <MClimate c={c} />)}</MSection>
       <MSection k="WATER" tone="sky" alert={swBad} sum={`VALVE ${sw[0]} • TAPE ${sw[1]}`}>{C.switches.map((c) => <MSwitch c={c} />)}</MSection>
@@ -3245,7 +3260,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v23';
+export const BUILD = 'v24';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
