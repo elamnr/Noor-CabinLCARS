@@ -65,6 +65,7 @@ class CabinLcars extends HTMLElement {
             this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: id }, bubbles: true, composed: true }));
           }
         },
+        toggleMenu: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })),
         events: (eid, start, end) => this._hass.callApi('GET', `calendars/${eid}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
       };
       setBackend(this._backend);

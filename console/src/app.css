@@ -1228,7 +1228,8 @@ h1, h2 { margin: 0; font-weight: 500; }
 .s-node[data-tone="na"] { background: var(--bl-rust); border-left-color: var(--bl-rust); }
 
 /* ================= v15 MOBILE (room: mobile) ================= */
-.m-app { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); overflow: hidden; }
+.m-app { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; height: 100dvh; padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); overflow: hidden; }
+.m-app[data-top0] { padding-top: env(safe-area-inset-top); }
 .m-hd { display: flex; align-items: stretch; gap: var(--bl-seam); padding: 8px 12px 6px; }
 .m-hd-cap { flex: none; min-width: 108px; display: flex; align-items: flex-end; justify-content: flex-end; padding: 6px 12px; border-radius: 28px 0 0 28px; color: #000; font-size: 15px; line-height: 1; }
 .m-hd-t { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; border-top: var(--bar) solid var(--bl-amber); padding: 2px 0 0 8px; }
@@ -1246,7 +1247,6 @@ h1, h2 { margin: 0; font-weight: 500; }
 .m-tab:first-child { border-radius: 30px 0 0 30px; }
 .m-tab:last-child { border-radius: 0 30px 30px 0; }
 .m-tab[data-cur] { box-shadow: inset 0 0 0 3px #000, inset 0 0 0 6px var(--bl-bone); }
-.m-link { position: fixed; right: 12px; top: calc(14px + env(safe-area-inset-top)); background: var(--bl-red); color: #000; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
 /* status tab */
 .m-alist { display: flex; flex-direction: column; gap: var(--bl-seam); }
 .m-alist .s-al { grid-template-columns: 70px minmax(0, 1fr) auto; min-height: 44px; }
@@ -1325,3 +1325,5 @@ h1, h2 { margin: 0; font-weight: 500; }
 .m-cams .s-det { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: var(--bl-seam); }
 .m-cams .s-det span { font-size: 13px; min-width: 0; padding: 4px 6px; }
 .m-cams .s-det span i { font-size: 12px; white-space: nowrap; }
+.m-menu { flex: none; align-self: flex-start; min-width: 72px; min-height: 44px; padding: 0 14px; border-radius: 0 22px 22px 0; background: var(--bl-tan); color: #000; font-size: 17px; }
+.m-menu[data-link-btn] { background: var(--bl-red); }

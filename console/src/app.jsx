@@ -1,7 +1,7 @@
 import { createContext } from 'preact';
 import { useEffect, useRef, useContext } from 'preact/hooks';
 import { useSignal, signal } from '@preact/signals';
-import { ent, link, fault, pending, ready, call, openEntity, getHistory, hassUrl, startOAuth, saveLongLived, forgetLink, getEvents, getForecast, mediaApi, serviceResponse, LS } from './ha.js';
+import { ent, link, fault, pending, ready, call, openEntity, canMenu, toggleMenu, getHistory, hassUrl, startOAuth, saveLongLived, forgetLink, getEvents, getForecast, mediaApi, serviceResponse, LS } from './ha.js';
 import { ROOMS, SHARED, ALL_IDS, MUSIC } from './rooms.js';
 import { sfx, soundOn, toggleSound, SOUND_SLOTS, custom, soundSync, setCustomSound, clearCustomSound, previewSound, startSoundSync, refreshSounds, MAX_SECONDS } from './sfx.js';
 import { WxIcon, ScaleBar, tempColor, humColor } from './wx.jsx';
@@ -2871,18 +2871,33 @@ function MCameras() {
   return <div class="m-stack m-cams">{S.cameras.map((c) => <SCam c={c} />)}{(S.webcams ?? []).map((w) => <SWebcam w={w} />)}</div>;
 }
 
+/** Fit the phone frame to the space below whatever Home Assistant draws above the card (its header,
+ * or nothing in kiosk mode). Re-measured on resize and for a few seconds after load, since the header can change late. */
+function useFitHeight() {
+  const ref = useRef(null); const h = useSignal(null);
+  useEffect(() => {
+    const fit = () => { const el = ref.current; if (!el) return; const top = el.getBoundingClientRect().top + (window.scrollY || 0); const v = Math.round((window.visualViewport?.height ?? window.innerHeight) - Math.max(0, top)); if (v > 200 && (v !== h.peek()?.v || (top < 1) !== h.peek()?.top0)) h.value = { v, top0: top < 1 }; };
+    fit(); const ts = [250, 1000, 2500, 5000].map((t) => setTimeout(fit, t));
+    window.addEventListener('resize', fit); window.visualViewport?.addEventListener('resize', fit);
+    return () => { ts.forEach(clearTimeout); window.removeEventListener('resize', fit); window.visualViewport?.removeEventListener('resize', fit); };
+  }, []);
+  return [ref, h.value];
+}
 function MobileFrame() {
   const R = useRoom(); const S = R.status;
+  const [fitRef, fitH] = useFitHeight();
   const E = useStatusEval(S);
   const tab = ['STATUS', 'CONTROL', 'CAMERAS'].includes(mTab.value) ? mTab.value : 'STATUS';
   const camNa = S.cameras.filter(([, c]) => { const st = ent(c).value; return !st || UNAVAIL.has(st.state); }).length;
   const head = E.alerts ? `${E.alerts} ALERT${E.alerts > 1 ? 'S' : ''}` : E.warns ? `${E.warns} CAUTION` : 'NOMINAL';
   const unlocked = S.controls.locks.filter(([, id]) => ent(id).value?.state === 'unlocked').length;
   return (
-    <div class="m-app" data-tab={tab}>
+    <div class="m-app" data-tab={tab} ref={fitRef} data-top0={!fitH || fitH.top0 ? '' : undefined} style={fitH ? { height: `${fitH.v}px` } : undefined}>
       <header class="m-hd">
         <span class="m-hd-cap" style={{ background: E.alerts ? 'var(--bl-red)' : E.warns ? 'var(--bl-sunflower)' : 'var(--bl-amber)' }}><b>{head}</b></span>
         <div class="m-hd-t"><h1>{R.title}</h1><small>{tab === 'STATUS' ? 'MASTER SYSTEMS' : tab} • {hm(clock.value)} • {BUILD}</small></div>
+        {link.value.mode !== 'hass' ? <button class="m-menu" data-link-btn="" onClick={() => (linkOpen.value = true)}>LINK</button>
+          : canMenu() && <button class="m-menu" onClick={toggleMenu} aria-label="Open Home Assistant menu">MENU</button>}
       </header>
       <main class="m-body">{tab === 'CONTROL' ? <MControl /> : tab === 'CAMERAS' ? <MCameras /> : <MStatus E={E} />}</main>
       <div class="m-fault"><Fault /></div>
@@ -2891,14 +2906,13 @@ function MobileFrame() {
         <button class="m-tab" data-cur={tab === 'CONTROL' ? '' : undefined} style={{ '--nav': 'var(--bl-peach)' }} onClick={() => goTab('CONTROL')}><small>{unlocked ? `${unlocked} UNLOCKED` : 'LOCKED'}</small>CONTROL</button>
         <button class="m-tab" data-cur={tab === 'CAMERAS' ? '' : undefined} style={{ '--nav': `var(--bl-${camNa ? 'red' : 'violet'})` }} onClick={() => goTab('CAMERAS')}><small>{camNa ? `${camNa} OFFLINE` : `${S.cameras.length} FEEDS`}</small>CAMERAS</button>
       </nav>
-      {link.value.mode !== 'hass' && <button class="m-link" onClick={() => (linkOpen.value = true)}>LINK</button>}
       <LinkPanel />
       <ReloadWatch />
     </div>
   );
 }
 
-export const BUILD = 'v15';
+export const BUILD = 'v16';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
