@@ -1371,6 +1371,21 @@ function useCameraSrc(id = SHARED.camera) {
   const pic = cam?.attributes?.entity_picture;
   return pic && hassUrl() ? `${hassUrl()}${pic.replace('/api/camera_proxy/', '/api/camera_proxy_stream/')}` : null;
 }
+/** Phone feeds: refreshed still snapshots instead of an MJPEG stream. Works in the iOS app's web view and uses far
+ * less mobile data. Other consoles keep the live stream. Pauses while the page is hidden. */
+function useCamFeed(id, ms = 3000) {
+  const mobile = useRoom().kiosk === 'mobile';
+  const live = useCameraSrc(id);
+  const tick = useSignal(0);
+  useEffect(() => {
+    if (!mobile || !id) return;
+    const iv = setInterval(() => { if (!document.hidden) tick.value = tick.peek() + 1; }, ms);
+    return () => clearInterval(iv);
+  }, [mobile, id, ms]);
+  if (!mobile) return live;
+  const pic = id ? ent(id).value?.attributes?.entity_picture : null;
+  return pic && hassUrl() ? `${hassUrl()}${pic}${pic.includes('?') ? '&' : '?'}t=${tick.value}` : null;
+}
 
 const garageArmed = signal(false);
 let armTimer;
@@ -2539,13 +2554,13 @@ function SDetail({ k }) {
   );
 }
 function SCam({ c: [label, id, wide, det] }) {
-  const src = useCameraSrc(id); const cam = ent(id).value;
+  const src = useCamFeed(id); const cam = ent(id).value;
   const active = det.filter(([, d]) => ent(d).value?.state === 'on');
   const hot = active.some(([l]) => l !== 'MOTION');
   return (
     <section class="panel s-cam" data-wide={wide ? '' : undefined} data-hot={hot ? '' : undefined}>
       <SecHead title={label} tone={hot ? 'red' : active.length ? 'sunflower' : 'violet'} />
-      {src ? <img class="s-feed" data-link="" title="Open full screen" onClick={() => (camView.value = { kind: 'cam', c: [label, id, wide, det] })} src={src} alt={`${label} camera`} />
+      {src ? <img class="s-feed" data-link="" title="Open full screen" onClick={() => (camView.value = { kind: 'cam', c: [label, id, wide, det] })} src={src} alt="" onError={(e) => e.currentTarget.setAttribute('data-bad', '')} onLoad={(e) => e.currentTarget.removeAttribute('data-bad')} />
         : <div class="s-feed alert-nocam" data-link="" onClick={() => (camView.value = { kind: 'cam', c: [label, id, wide, det] })}><span>NO FEED</span><small>{link.value.mode === 'sim' ? 'SIMULATION • CAMERA REQUIRES LIVE LINK' : `${UP(cam?.state ?? 'CAMERA NOT FOUND')}`}</small></div>}
       <div class="s-det">
         {det.map(([l, d]) => { const st = ent(d).value; const on = st?.state === 'on'; return <span data-link="" onClick={() => openEntity(d)} data-on={on ? '' : undefined} data-kind={l === 'MOTION' ? 'motion' : 'ai'} data-na={!st || UNAVAIL.has(st.state) ? '' : undefined}>{l}<i>{!st || UNAVAIL.has(st.state) ? '--' : on ? 'NOW' : ago(st.last_changed)}</i></span>; })}
@@ -2574,7 +2589,7 @@ function SCamViewer({ v }) {
   const stage = useRef(null); const drag = useRef(null);
   const [label, id] = v.kind === 'cam' ? v.c : v.w;
   const det = v.kind === 'cam' ? v.c[3] : [];
-  const src = useCameraSrc(v.kind === 'cam' ? id : null);
+  const src = useCamFeed(v.kind === 'cam' ? id : null, 1000);
   const clamp = (x, zz) => { const m = (zz - 1) / 2; return Math.max(-m, Math.min(m, x)); };
   const setZ = (z2, cx = 0, cy = 0) => {
     z2 = Math.max(1, Math.min(ZMAX, Math.round(z2 * 100) / 100));
@@ -2608,7 +2623,7 @@ function SCamViewer({ v }) {
         <div class="s-cv-stage" ref={stage} data-zoomed={z.value > 1 ? '' : undefined} onWheel={onWheel} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDblClick={onDbl}>
           {v.kind === 'web'
             ? (link.value.mode === 'sim' ? <div class="s-cv-media alert-nocam" style={tf}><span>EXTERNAL FEED</span><small>SIMULATION</small></div> : <iframe class="s-cv-media" style={tf} src={v.w[1]} title={label} allow="autoplay; fullscreen" />)
-            : src ? <img class="s-cv-media" style={tf} src={src} alt={label} draggable={false} />
+            : src ? <img class="s-cv-media" style={tf} src={src} alt="" draggable={false} />
             : <div class="s-cv-media alert-nocam" style={tf}><span>NO FEED</span><small>{link.value.mode === 'sim' ? 'SIMULATION • CAMERA REQUIRES LIVE LINK' : UP(cam?.state ?? 'CAMERA NOT FOUND')}</small></div>}
           {v.kind === 'web' && z.value > 1 && <div class="s-cv-grab" />}
           <div class="s-cv-mini" aria-hidden="true"><i style={{ width: `${100 / z.value}%`, height: `${100 / z.value}%`, left: `${(0.5 - 0.5 / z.value - px.value / z.value) * 100}%`, top: `${(0.5 - 0.5 / z.value - py.value / z.value) * 100}%` }} /></div>
@@ -3230,7 +3245,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v22';
+export const BUILD = 'v23';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;

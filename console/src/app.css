@@ -1427,3 +1427,4 @@ h1, h2 { margin: 0; font-weight: 500; }
 .m-node[data-tone="na"] i { background: var(--bl-rust); box-shadow: inset 0 0 0 2px var(--bl-on-rust); }
 .m-acc[data-alert] .m-acc-h { color: #000; }
 .m-acc[data-alert] .m-acc-t { animation: blink var(--bl-dur-blink) steps(1, end) infinite; }
+.s-feed[data-bad] { visibility: hidden; }
