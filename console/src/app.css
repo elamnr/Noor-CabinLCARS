@@ -1460,3 +1460,16 @@ h1, h2 { margin: 0; font-weight: 500; }
 .tri[data-d="c"] { width: 12px; height: 12px; border-radius: 50%; }
 .m-more { border-radius: 0 26px 26px 0; text-align: right; padding-right: 26px; }
 .m-app .s-cv-ctl > :nth-child(1) small { display: none; }
+/* v26 warm / daylight selector */
+.m-seg { display: grid; grid-template-columns: 1fr 1fr 0.7fr; gap: var(--bl-seam); }
+.m-seg .m-btn { min-height: 48px; font-size: 18px; border-radius: 0; }
+.m-seg .m-btn:first-child { border-radius: 24px 0 0 24px; }
+.m-seg .m-btn:last-child { border-radius: 0 24px 24px 0; }
+.m-seg .m-btn[data-k="warm"]:not(:disabled) { background: var(--bl-lilac); color: var(--bl-title); }
+.m-seg .m-btn[data-k="day"]:not(:disabled) { background: var(--bl-lilac); color: var(--bl-title); }
+.m-seg .m-btn[data-k="off"]:not(:disabled) { background: var(--bl-tan); color: #000; }
+.m-seg .m-btn[data-k="warm"][data-sel] { background: var(--bl-sunflower); color: #000; opacity: 1; }
+.m-seg .m-btn[data-k="day"][data-sel] { background: var(--bl-bone); color: #000; opacity: 1; }
+.m-seg .m-btn[data-k="off"][data-sel] { background: var(--bl-lilac); color: var(--bl-on-lilac); opacity: 1; }
+.m-light-c3 { grid-template-columns: 52px minmax(0, 1fr) 52px; }
+.m-light-c3 .m-sq:last-child { border-radius: 0 24px 24px 0; }

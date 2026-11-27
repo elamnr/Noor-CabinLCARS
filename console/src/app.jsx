@@ -2866,6 +2866,56 @@ function MLight({ c: [label, id] }) {
     </div>
   );
 }
+/** Bunk House two-channel lights: WARM (warm channels only) or DAYLIGHT (warm + cool at equal brightness). */
+const toneLast = {};
+function toneState({ warm, cool }) {
+  const W = warm.map((id) => ent(id).value), K = cool.map((id) => ent(id).value);
+  const all = [...W, ...K];
+  const na = all.every((x) => isNa(x));
+  const wOn = W.filter((x) => x?.state === 'on'), kOn = K.filter((x) => x?.state === 'on');
+  const mode = na ? 'NA' : kOn.length ? 'DAY' : wOn.length ? 'WARM' : 'OFF';
+  const src = (mode === 'DAY' && !wOn.length ? kOn : wOn).map((x) => x.attributes?.brightness).filter((b) => b != null);
+  const pct = src.length ? Math.round(src.reduce((a, b) => a + b, 0) / src.length / 2.55) : null;
+  return { mode, pct, partial: all.some((x) => isNa(x)) && !na };
+}
+function MTone({ c: [label, ch] }) {
+  const { mode, pct: cur } = toneState(ch);
+  const key = `tone:${label}`;
+  const target = useSignal(null);
+  const pct = target.value ?? cur;
+  if (cur != null) toneLast[key] = cur;
+  const lvl = () => pct ?? toneLast[key] ?? 60;
+  const setMode = async (m) => {
+    const b = lvl();
+    if (m === 'WARM') { await call('light', 'turn_off', {}, key, ch.cool); await call('light', 'turn_on', { brightness_pct: b }, key, ch.warm); }
+    else if (m === 'DAY') await call('light', 'turn_on', { brightness_pct: b }, key, [...ch.warm, ...ch.cool]);
+    else await call('light', 'turn_off', {}, key, [...ch.warm, ...ch.cool]);
+  };
+  const bump = (d) => {
+    const v = Math.max(5, Math.min(100, Math.round(((pct ?? 0) + d) / 5) * 5));
+    target.value = v; clearTimeout(bTimers[key]);
+    bTimers[key] = setTimeout(async () => { await call('light', 'turn_on', { brightness_pct: v }, key, mode === 'DAY' ? [...ch.warm, ...ch.cool] : ch.warm); target.value = null; }, 900);
+  };
+  const na = mode === 'NA'; const on = mode === 'WARM' || mode === 'DAY'; const busy = isPending(key);
+  return (
+    <div class="m-light" data-tone={na ? 'na' : on ? 'on' : 'off'}>
+      <div class="m-light-h" data-link="" onClick={() => openEntity(ch.warm[0])}><span>{label}</span><b>{na ? 'NO SIGNAL' : mode === 'DAY' ? 'DAYLIGHT' : mode}</b></div>
+      <div class="m-seg">
+        <button class="m-btn" data-sel={mode === 'WARM' ? '' : undefined} data-k="warm" disabled={na || busy} onClick={() => setMode('WARM')}>WARM</button>
+        <button class="m-btn" data-sel={mode === 'DAY' ? '' : undefined} data-k="day" disabled={na || busy} onClick={() => setMode('DAY')}>DAYLIGHT</button>
+        <button class="m-btn" data-sel={mode === 'OFF' ? '' : undefined} data-k="off" disabled={na || busy || mode === 'OFF'} onClick={() => setMode('OFF')}>OFF</button>
+      </div>
+      <div class="m-light-c m-light-c3">
+        <button class="m-btn m-sq" disabled={na || !on || (pct ?? 0) <= 5} onClick={() => bump(-10)} aria-label={`Dim ${label}`}>−</button>
+        <div class="m-lbri" data-pend={target.value != null ? '' : undefined}><i style={{ width: `${on ? pct ?? 0 : 0}%` }} /><b>{on && pct != null ? `${pct}%` : '--'}</b></div>
+        <button class="m-btn m-sq" disabled={na || !on || (pct ?? 0) >= 100} onClick={() => bump(10)} aria-label={`Brighten ${label}`}>+</button>
+      </div>
+    </div>
+  );
+}
+const MAnyLight = ({ c }) => (typeof c[1] === 'string' ? <MLight c={c} /> : <MTone c={c} />);
+const lightOn = (x) => (typeof x === 'string' ? ent(x).value?.state === 'on' : ['WARM', 'DAY'].includes(toneState(x).mode));
+const lightNa = (x) => (typeof x === 'string' ? isNa(ent(x).value) : toneState(x).mode === 'NA');
 const lightsPage = signal(false);
 function MLightsPage() {
   const P = useRoom().status.controls.lightPage;
@@ -2874,9 +2924,9 @@ function MLightsPage() {
       <div class="m-back">
         <button class="m-btn" onClick={() => (lightsPage.value = false)}>CONTROL</button>
         <h2 style={{ color: 'var(--bl-bone)' }}>ALL LIGHTS</h2>
-        <span>{P.flatMap(([, l]) => l).filter(([, id]) => ent(id).value?.state === 'on').length} ON</span>
+        <span>{P.flatMap(([, l]) => l).filter(([, x]) => lightOn(x)).length} ON</span>
       </div>
-      {P.map(([b, list]) => <MPanel t={b} tone="bone">{list.map((c) => <MLight c={c} />)}</MPanel>)}
+      {P.map(([b, list]) => <MPanel t={b} tone="bone">{list.map((c) => <MAnyLight c={c} />)}</MPanel>)}
     </div>
   );
 }
@@ -2902,8 +2952,8 @@ function MControl() {
   const st = (id) => ent(id).value;
   const na = (id) => isNa(st(id));
   // ILLUMINATION: out of norm = a light group not reporting
-  const lightsOn = C.lights.filter(([, id]) => st(id)?.state === 'on').length;
-  const lightsNa = C.lights.filter(([, id]) => na(id));
+  const lightsOn = C.lights.filter(([, x]) => lightOn(x)).length;
+  const lightsNa = C.lights.filter(([, x]) => lightNa(x));
   // LOCKS: out of norm = unlocked, jammed or not reporting
   const lockBad = C.locks.filter(([, id]) => st(id)?.state !== 'locked');
   const unlocked = C.locks.filter(([, id]) => st(id)?.state === 'unlocked').length;
@@ -2923,7 +2973,7 @@ function MControl() {
   const swBad = C.switches.some(([, id]) => st(id)?.state !== 'on');
   return (
     <div class="m-stack m-accs">
-      <MSection k="ILLUMINATION" tone="bone" alert={lightsNa.length > 0} sum={lightsNa.length ? `${lightsNa.length} NOT REPORTING` : `${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MLight c={c} />)}<button class="m-btn m-more" onClick={() => { lightsPage.value = true; try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }}>ALL LIGHTS</button></MSection>
+      <MSection k="ILLUMINATION" tone="bone" alert={lightsNa.length > 0} sum={lightsNa.length ? `${lightsNa.length} NOT REPORTING` : `${lightsOn} OF ${C.lights.length} ON`}>{C.lights.map((c) => <MAnyLight c={c} />)}<button class="m-btn m-more" onClick={() => { lightsPage.value = true; try { dom.root.querySelector?.('.m-body')?.scrollTo?.(0, 0); } catch {} }}>ALL LIGHTS</button></MSection>
       <MSection k="LOCKS" tone="violet" alert={lockBad.length > 0} sum={lockBad.length ? (unlocked ? `${unlocked} UNLOCKED` : `${lockBad.length} CHECK LOCK`) : 'ALL LOCKED'}>{C.locks.map((c) => <MLock c={c} />)}</MSection>
       <MSection k="ENVIRONMENTAL" tone="peach" alert={envBad.length > 0} sum={envBad.length ? envBad.join(' • ') : temps.length ? `${Math.round(Math.min(...temps))}°–${Math.round(Math.max(...temps))}°` : '--'}>{C.climate.map((c) => <MClimate c={c} />)}</MSection>
       <MSection k="WATER" tone="sky" alert={swBad} sum={`VALVE ${sw[0]} • TAPE ${sw[1]}`}>{C.switches.map((c) => <MSwitch c={c} />)}</MSection>
@@ -3260,7 +3310,7 @@ function MobileFrame() {
   );
 }
 
-export const BUILD = 'v25';
+export const BUILD = 'v26';
 function App({ room = 'bedroom' }) {
   const R = ROOMS[room];
   if (!R) return <div class="app" style={{ display: 'grid', placeItems: 'center' }}><div class="fault-line" style={{ fontSize: '28px' }}>UNKNOWN ROOM "{UP(room)}" • CONSOLE FILE BUILD {BUILD} • CHECK THE CARD'S room SETTING</div></div>;
